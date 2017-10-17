@@ -13,7 +13,6 @@ namespace GrafikaKomputerowaProjekt
 
     //Context Menu , usuwanie wierzchołków ???? 
     //popraw draw line (rozdziel na tworzenie obiektu linii , oraz tworzenie listy rectanglów
-
     //notatki
 
     /// <summary>
@@ -25,6 +24,7 @@ namespace GrafikaKomputerowaProjekt
         private readonly List<Line> _lines = new List<Line>();
         private readonly ContextMenu _verticleContextMenu = new ContextMenu();
         private readonly ContextMenu _firstVerticleContextMenu = new ContextMenu();
+        private readonly ContextMenu _lineContextMenu = new ContextMenu();
         private int _verticleIndexer = 0;
         private const int VerticleSize = 10;
         private const int LinePointSize = 4;
@@ -40,6 +40,7 @@ namespace GrafikaKomputerowaProjekt
             InitializeComponent();
             InitializeVerticleContextMenu();
             InitializeFirstVerticleContextMenu();
+            InitializeLineContextMenu();
         }
 
         private void InitializeVerticleContextMenu()
@@ -60,6 +61,13 @@ namespace GrafikaKomputerowaProjekt
 
             _firstVerticleContextMenu.Items.Add(deleteVerticleMenuItem);
             _firstVerticleContextMenu.Items.Add(endDrawingPolygonMenuItem);
+        }
+
+        private void InitializeLineContextMenu()
+        {
+            MenuItem mi = new MenuItem { Header = "Dodaj wierzcholek" };
+            mi.Click += AddVerticleInTheMiddleOfLine;
+            _lineContextMenu.Items.Add(mi);
         }
 
         private void EndDrawingPolygon(object sender, RoutedEventArgs routedEventArgs)
@@ -436,13 +444,77 @@ namespace GrafikaKomputerowaProjekt
             }
         }
 
-        //private bool IsPointInPolygon(Verticle x, Verticle y, Verticle z)
-        //{
-        //    var det = x.X * y.Y + y.X * z.Y + z.X * x.Y - z.X * y.Y - x.X * z.Y - y.X * x.Y;
-        //    if (det != 0)
-        //        return false;
+        // zaznaczanie linii
 
-        //    return (Math.Min(x.X, y.X) <= z.X) && (z.X <= Math.Max(x.X, y.X)) && (Math.Min(x.Y, y.Y) <= z.Y) && (z.Y <= Math.Max(x.Y, y.Y));
-        //}
+        private void AddContextMenuToLine(object sender, RoutedEventArgs e)
+        {
+            foreach (var line in _lines)
+            {
+                foreach (var rectangle in line.rectangles)
+                {
+                    rectangle.IsHitTestVisible = true;
+                    rectangle.ContextMenu = _lineContextMenu;
+                }
+            }
+        }
+
+        private void AddVerticleInTheMiddleOfLine(object sender, RoutedEventArgs routedEventArgs)
+        {
+            MenuItem mi = sender as MenuItem;
+
+            if (mi != null)
+            {
+                Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
+
+                Line line = FindLine(rc);
+
+                Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
+                Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
+
+                foreach (var rect in line.rectangles)
+                {
+                    canvas.Children.Remove(rect);
+                }
+                _lines.Remove(line);
+
+                int x = (verticleOne.X + verticleTwo.X) / 2;
+                int y = (verticleOne.Y + verticleTwo.Y) / 2;
+
+                Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
+                rectangle.ContextMenu = _verticleContextMenu;
+                Verticle newVerticle = new Verticle(_verticleIndexer++, x, y, rectangle);
+                _verticles.Add(newVerticle);
+
+                DrawLine(verticleOne, newVerticle);
+                DrawLine(newVerticle, verticleTwo);
+            }
+        }
+
+        private Line FindLine(Rectangle rectangle)
+        {
+            foreach (var line in _lines)
+            {
+                foreach (var rect in line.rectangles)
+                {
+                    if (Equals(rectangle, rect))
+                    {
+                        return line;
+                    }
+                }
+            }
+            return _lines.FirstOrDefault();
+        }
+
+        private void RemoveContextMenuFromLine(object sender, RoutedEventArgs e)
+        {
+            foreach (var line in _lines)
+            {
+                foreach (var rectangle in line.rectangles)
+                {
+                    rectangle.IsHitTestVisible = false;
+                    rectangle.ContextMenu = null;
+                }
+            }
+        }
     }
 }
