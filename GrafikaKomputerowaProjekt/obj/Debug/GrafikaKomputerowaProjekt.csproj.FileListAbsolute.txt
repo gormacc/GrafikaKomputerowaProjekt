@@ -1,0 +1,14 @@
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\bin\Debug\GrafikaKomputerowaProjekt.exe.config
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\bin\Debug\GrafikaKomputerowaProjekt.exe
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\bin\Debug\GrafikaKomputerowaProjekt.pdb
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\GrafikaKomputerowaProjekt.csprojResolveAssemblyReference.cache
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\MainWindow.g.cs
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\App.g.cs
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\GrafikaKomputerowaProjekt_MarkupCompile.cache
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\GrafikaKomputerowaProjekt_MarkupCompile.lref
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\MainWindow.baml
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\GrafikaKomputerowaProjekt.g.resources
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\GrafikaKomputerowaProjekt.Properties.Resources.resources
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\GrafikaKomputerowaProjekt.csproj.GenerateResource.Cache
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\GrafikaKomputerowaProjekt.exe
+c:\users\maciej\documents\visual studio 2015\Projects\GrafikaKomputerowaProjekt\GrafikaKomputerowaProjekt\obj\Debug\GrafikaKomputerowaProjekt.pdb
