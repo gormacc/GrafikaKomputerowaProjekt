@@ -13,10 +13,10 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         
-        <Canvas Grid.Column="0" Name="canvas" Background="White" MouseMove="LineHelper" MouseLeftButtonDown="SetVerticle"/>
+        <Canvas Grid.Column="0" Name="canvas" Background="White"/>
         <StackPanel Grid.Column="1" Background="Coral">
             <Button Click="ClearCanvasButton" Content="Wyczysc" Margin="10,20" />
-            <ToggleButton Checked="AddContextMenuToLine" Unchecked="RemoveContextMenuFromLine" Content="Zaznaczanie linii" Margin="10,20" />
+            <ToggleButton Checked="AllowMovingPolygon" Unchecked="ForbidMovingPolygon" Content="Ruszanie wielokata" Margin="10,20" />
         </StackPanel>
     </Grid>
     

@@ -12,7 +12,7 @@ namespace GrafikaKomputerowaProjekt
     //notatki
 
     //Context Menu , usuwanie wierzchołków ???? 
-    //popraw draw line (rozdziel na tworzenie obiektu linii , oraz tworzenie listy rectanglów
+    // poruszanie wielokąta słabo działa, trzeba wykrywać czy kliknięto w środku
     //notatki
 
     /// <summary>
@@ -28,6 +28,7 @@ namespace GrafikaKomputerowaProjekt
         private int _verticleIndexer = 0;
         private const int VerticleSize = 10;
         private const int LinePointSize = 4;
+        private const int LineMarginOfError = 10;
         private Line _helpingLine;
         private Verticle _movingVerticle;
         private bool _isMovingVerticleSet = false;
@@ -38,14 +39,17 @@ namespace GrafikaKomputerowaProjekt
         public MainWindow()
         {
             InitializeComponent();
+            InitializeCanvas();
             InitializeVerticleContextMenu();
             InitializeFirstVerticleContextMenu();
             InitializeLineContextMenu();
         }
 
+        #region Initializing Context Menus
+
         private void InitializeVerticleContextMenu()
         {
-            MenuItem mi = new MenuItem {Header = "Usun wierzchołek"};
+            MenuItem mi = new MenuItem { Header = "Usun wierzchołek" };
             mi.Click += DeleteVerticle;
 
             _verticleContextMenu.Items.Add(mi);
@@ -53,10 +57,10 @@ namespace GrafikaKomputerowaProjekt
 
         private void InitializeFirstVerticleContextMenu()
         {
-            MenuItem deleteVerticleMenuItem = new MenuItem {Header = "Usun wierzchołek"};
+            MenuItem deleteVerticleMenuItem = new MenuItem { Header = "Usun wierzchołek" };
             deleteVerticleMenuItem.Click += DeleteVerticle;
 
-            MenuItem endDrawingPolygonMenuItem = new MenuItem {Header = "Zakoncz rysowanie wielokata"};
+            MenuItem endDrawingPolygonMenuItem = new MenuItem { Header = "Zakoncz rysowanie wielokata" };
             endDrawingPolygonMenuItem.Click += EndDrawingPolygon;
 
             _firstVerticleContextMenu.Items.Add(deleteVerticleMenuItem);
@@ -70,24 +74,86 @@ namespace GrafikaKomputerowaProjekt
             _lineContextMenu.Items.Add(mi);
         }
 
+        #endregion
+
+        #region Enabling Disabling
+
+        private void EnableDrawingHelpingLine()
+        {
+            canvas.MouseMove += LineHelper;
+        }
+
+        private void DisableDrawingHelpingLine()
+        {
+            canvas.MouseMove -= LineHelper;
+        }
+
+        private void EnableSettingVerticle()
+        {
+            canvas.MouseLeftButtonDown += SetVerticle;
+        }
+
+        private void DisableSettingVerticle()
+        {
+            canvas.MouseLeftButtonDown -= SetVerticle;
+        }
+
+        private void EnableMovingPolygon()
+        {
+            canvas.MouseLeftButtonDown += LeftButtonDownPolygon;
+            canvas.MouseLeftButtonUp += LeftButtonUpPolygon;
+        }
+
+        private void DisableMovingPolygon()
+        {
+            canvas.MouseLeftButtonDown -= LeftButtonDownPolygon;
+            canvas.MouseLeftButtonUp -= LeftButtonUpPolygon;
+        }
+
+        private void EnableMovingVerticles()
+        {
+            foreach (var ver in _verticles)
+            {
+                ver.Rectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
+                ver.Rectangle.MouseLeftButtonUp += LeftButtonUpVerticle;
+            }
+            canvas.MouseMove += MoveVerticle;
+        }
+
+        private void DisableMovingVerticles()
+        {
+            foreach (var ver in _verticles)
+            {
+                ver.Rectangle.MouseLeftButtonDown -= LeftButtonDownVerticle;
+                ver.Rectangle.MouseLeftButtonUp -= LeftButtonUpVerticle;
+            }
+            canvas.MouseMove -= MoveVerticle;
+        }
+
+        private void EnableClickingOneLine(Line line)
+        {
+            for (int i = LineMarginOfError; i < line.Rectangles.Count - LineMarginOfError; i++)
+            {
+                line.Rectangles[i].IsHitTestVisible = true;
+            }
+        }
+
+
+        #endregion
+
+        private void InitializeCanvas()
+        {
+            EnableSettingVerticle();
+            EnableDrawingHelpingLine();
+        }
+
         private void EndDrawingPolygon(object sender, RoutedEventArgs routedEventArgs)
         {
             if(_verticles.Count < 3)
                 return;
 
             _polygonMade = true;
-
-            canvas.MouseLeftButtonDown -= SetVerticle;
-            canvas.MouseMove -= LineHelper;
-            canvas.MouseLeftButtonDown += LeftButtonDownPolygon;
-            canvas.MouseLeftButtonUp += LeftButtonUpPolygon;
-            foreach (var ver in _verticles)
-            {
-                ver.Rectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
-                ver.Rectangle.MouseLeftButtonUp += LeftButtonUpVerticle;
-            }
             _verticles.FirstOrDefault(v => v.Id == 0).Rectangle.ContextMenu = _verticleContextMenu;
-
             ClearHelpingLine();
 
             MenuItem mi = sender as MenuItem;
@@ -99,10 +165,13 @@ namespace GrafikaKomputerowaProjekt
                 Verticle endVerticle = _verticles.FirstOrDefault(v => Equals(v.Rectangle, rc));
                 Verticle lastVerticle = _verticles.LastOrDefault();
 
-                _lines.Add(DrawLine(lastVerticle, endVerticle)); 
+                _lines.Add(CreateLine(lastVerticle, endVerticle)); 
             }
+            DisableSettingVerticle();
+            DisableDrawingHelpingLine();
+            EnableMovingVerticles();
+            //EnableClickingLines();
 
-            canvas.MouseMove += MoveVerticle;
         }
 
         private void DeleteVerticle(object sender, RoutedEventArgs routedEventArgs) 
@@ -131,10 +200,7 @@ namespace GrafikaKomputerowaProjekt
 
             foreach (var line in linesToDelete)
             {
-                foreach (var rectangle in line.rectangles)
-                {
-                    canvas.Children.Remove(rectangle);
-                }
+                ClearLine(line);
                 _lines.Remove(line);
             }
 
@@ -155,7 +221,7 @@ namespace GrafikaKomputerowaProjekt
             Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == verticlesIds[0]);
             Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == verticlesIds[1]);
 
-            _lines.Add(DrawLine(verticleOne, verticleTwo)); 
+            _lines.Add(CreateLine(verticleOne, verticleTwo)); 
         }
 
         private void SetVerticle(object sender, MouseButtonEventArgs e)
@@ -173,7 +239,7 @@ namespace GrafikaKomputerowaProjekt
             if (_verticles.Count >= 2)
             {
                 int index = _verticles.Count - 2;
-                _lines.Add(DrawLine(_verticles[index], _verticles[index + 1])); 
+                _lines.Add(CreateLine(_verticles[index], _verticles[index + 1])); 
             }
         }
 
@@ -212,18 +278,12 @@ namespace GrafikaKomputerowaProjekt
 
                 int verticleId = _movingVerticle.Id;
 
-                List<Line> linesToDelete = new List<Line>(_lines.Where(l => l.VerticleOneId == verticleId || l.VerticleTwoId == verticleId));
+                List<Line> lines = new List<Line>(_lines.Where(l => l.VerticleOneId == verticleId || l.VerticleTwoId == verticleId));
 
-                List<int> verticlesIds = new List<int>();
-
-                foreach (var line in linesToDelete)
+                foreach (var line in lines)
                 {
-                    foreach (var rectangle in line.rectangles)
-                    {
-                        canvas.Children.Remove(rectangle);
-                    }
-                    verticlesIds.Add(line.VerticleOneId == verticleId ? line.VerticleTwoId : line.VerticleOneId);
-                    _lines.Remove(line);
+                    ClearLine(line);
+                    line.Rectangles.Clear();
                 }
 
                 // -------------
@@ -244,10 +304,10 @@ namespace GrafikaKomputerowaProjekt
 
                 // przerysowanie linii
 
-                foreach (var verId in verticlesIds)
+                foreach (var line in lines)
                 {
-                    Verticle ver = _verticles.FirstOrDefault(v => v.Id == verId);
-                    _lines.Add(DrawLine(ver, _movingVerticle));
+                    RedrawLine(line);
+                    EnableClickingOneLine(line);
                 }
 
                 //--------------------------------
@@ -291,14 +351,18 @@ namespace GrafikaKomputerowaProjekt
                 verticle.Rectangle = SetPixel(verticle.X, verticle.Y, VerticleSize, true);
             }
 
-            _lines.Clear();
-
-            for (int i = 0; i < _verticles.Count - 1; i++)
+            foreach (var line in _lines)
             {
-                _lines.Add(DrawLine(_verticles[i], _verticles[i+1]));
+                RedrawLine(line);
             }
-            _lines.Add(DrawLine(_verticles[_verticles.Count - 1], _verticles[0]));
 
+        }
+
+        private void RedrawLine(Line line)
+        {
+            Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
+            Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
+            line.Rectangles = DrawLine(verticleOne, verticleTwo);
         }
 
         private Rectangle SetPixel(int x, int y, int size, bool hitTestVisible = false)
@@ -313,7 +377,14 @@ namespace GrafikaKomputerowaProjekt
             return rectangle;
         }
 
-        private Line DrawLine(Verticle v1, Verticle v2)
+        private Line CreateLine(Verticle v1, Verticle v2)
+        {
+            Line line = new Line(v1.Id, v2.Id, DrawLine(v1, v2));
+            EnableClickingOneLine(line);
+            return line;
+        }
+
+        private List<Rectangle> DrawLine(Verticle v1, Verticle v2)
         {
             int x1 = v1.X;
             int x2 = v2.X;
@@ -349,7 +420,8 @@ namespace GrafikaKomputerowaProjekt
 
             // pierwszy piksel
             listOfRectangles.Add(SetPixel(x,y,LinePointSize));
-            
+            Rectangle rectangle;
+
             // oś wiodąca OX
             if (dx > dy)
             {
@@ -371,7 +443,9 @@ namespace GrafikaKomputerowaProjekt
                         d += bi;
                         x += xi;
                     }
-                    listOfRectangles.Add(SetPixel(x, y, LinePointSize));
+                    rectangle = SetPixel(x, y, LinePointSize);
+                    rectangle.ContextMenu = _lineContextMenu;
+                    listOfRectangles.Add(rectangle);
                 }
             }
             // oś wiodąca OY
@@ -395,10 +469,12 @@ namespace GrafikaKomputerowaProjekt
                         d += bi;
                         y += yi;
                     }
-                    listOfRectangles.Add(SetPixel(x, y, LinePointSize));
+                    rectangle = SetPixel(x, y, LinePointSize);
+                    rectangle.ContextMenu = _lineContextMenu;
+                    listOfRectangles.Add(rectangle);
                 }
             }
-            return new Line(v1.Id, v2.Id, listOfRectangles);
+            return listOfRectangles;
         }
 
 
@@ -408,10 +484,10 @@ namespace GrafikaKomputerowaProjekt
             _verticles.Clear();
             _lines.Clear();
             _verticleIndexer = 0;
-            canvas.MouseLeftButtonDown += SetVerticle;
-            canvas.MouseLeftButtonDown -= LeftButtonDownPolygon;
-            canvas.MouseLeftButtonUp -= LeftButtonUpPolygon;
-            canvas.MouseMove += LineHelper;
+            EnableSettingVerticle();
+            DisableMovingVerticles();
+            //DisableMovingPolygon();
+            EnableDrawingHelpingLine();
             _helpingLine = null;
             _polygonMade = false;            
         }
@@ -428,32 +504,60 @@ namespace GrafikaKomputerowaProjekt
 
             Verticle extraVerticle = new Verticle(int.MaxValue, x, y);
             Verticle lastVerticle = _verticles.LastOrDefault();
-
-            _helpingLine = DrawLine(lastVerticle, extraVerticle);
+            _helpingLine = new Line(-1, -1, DrawLine(extraVerticle, lastVerticle));
         }
 
         private void ClearHelpingLine()
         {
             if (_helpingLine != null)
             {
-                foreach (var rectangle in _helpingLine.rectangles)
-                {
-                    canvas.Children.Remove(rectangle);
-                }
-                _lines.Remove(_helpingLine);
+                ClearLine(_helpingLine);
+            }
+        }
+
+        private void ClearLine(Line line)
+        {
+            foreach (var rectangle in line.Rectangles)
+            {
+                canvas.Children.Remove(rectangle);
             }
         }
 
         // zaznaczanie linii
 
-        private void AddContextMenuToLine(object sender, RoutedEventArgs e)
+        private void AllowMovingPolygon(object sender, RoutedEventArgs e)
         {
+            DisableMovingVerticles();
+            EnableMovingPolygon();
+
+
+            foreach (var verticle in _verticles)
+            {
+                verticle.Rectangle.MouseLeftButtonUp += LeftButtonUpPolygon;
+            }
             foreach (var line in _lines)
             {
-                foreach (var rectangle in line.rectangles)
+                foreach (var rectangle in line.Rectangles)
                 {
-                    rectangle.IsHitTestVisible = true;
-                    rectangle.ContextMenu = _lineContextMenu;
+                    rectangle.MouseLeftButtonUp += LeftButtonUpPolygon;
+                }
+            }
+        }
+
+        private void ForbidMovingPolygon(object sender, RoutedEventArgs e)
+        {
+            EnableMovingVerticles();
+            DisableMovingPolygon();
+
+            foreach (var verticle in _verticles)
+            {
+                verticle.Rectangle.MouseLeftButtonUp -= LeftButtonUpPolygon;
+            }
+            foreach (var line in _lines)
+            {
+                foreach (var rectangle in line.Rectangles)
+                {
+                    rectangle.MouseLeftButtonUp -= LeftButtonUpPolygon;
                 }
             }
         }
@@ -471,22 +575,21 @@ namespace GrafikaKomputerowaProjekt
                 Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
                 Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
 
-                foreach (var rect in line.rectangles)
-                {
-                    canvas.Children.Remove(rect);
-                }
+                ClearLine(line);
                 _lines.Remove(line);
 
                 int x = (verticleOne.X + verticleTwo.X) / 2;
                 int y = (verticleOne.Y + verticleTwo.Y) / 2;
 
                 Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
+                rectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
+                rectangle.MouseLeftButtonUp += LeftButtonUpVerticle;
                 rectangle.ContextMenu = _verticleContextMenu;
                 Verticle newVerticle = new Verticle(_verticleIndexer++, x, y, rectangle);
                 _verticles.Add(newVerticle);
 
-                DrawLine(verticleOne, newVerticle);
-                DrawLine(newVerticle, verticleTwo);
+                _lines.Add(CreateLine(verticleOne, newVerticle));
+                _lines.Add(CreateLine(newVerticle, verticleTwo));
             }
         }
 
@@ -494,7 +597,7 @@ namespace GrafikaKomputerowaProjekt
         {
             foreach (var line in _lines)
             {
-                foreach (var rect in line.rectangles)
+                foreach (var rect in line.Rectangles)
                 {
                     if (Equals(rectangle, rect))
                     {
@@ -505,16 +608,5 @@ namespace GrafikaKomputerowaProjekt
             return _lines.FirstOrDefault();
         }
 
-        private void RemoveContextMenuFromLine(object sender, RoutedEventArgs e)
-        {
-            foreach (var line in _lines)
-            {
-                foreach (var rectangle in line.rectangles)
-                {
-                    rectangle.IsHitTestVisible = false;
-                    rectangle.ContextMenu = null;
-                }
-            }
-        }
     }
 }
