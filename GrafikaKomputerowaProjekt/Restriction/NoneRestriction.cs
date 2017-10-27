@@ -1,4 +1,7 @@
-﻿namespace GrafikaKomputerowaProjekt.Restriction
+﻿using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+
+namespace GrafikaKomputerowaProjekt.Restriction
 {
     public class NoneRestriction : IRestriction
     {
@@ -7,8 +10,9 @@
             return true;
         }
 
-        public void DrawInformationPic(int v1x, int v2x)
+        public Image GetRestrictionPic()
         {
+            return new Image();
         }
     }
 }

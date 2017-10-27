@@ -1,4 +1,9 @@
-﻿namespace GrafikaKomputerowaProjekt.Restriction
+﻿using System;
+using System.IO;
+using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+
+namespace GrafikaKomputerowaProjekt.Restriction
 {
     public class HorizontalLineRestriction : IRestriction
     {
@@ -7,9 +12,13 @@
             return v1Line.Restriction.GetType() != typeof(HorizontalLineRestriction) && v2Line.Restriction.GetType() != typeof(HorizontalLineRestriction);
         }
 
-        public void DrawInformationPic(int v1x, int v2x)
+        public Image GetRestrictionPic()
         {
-            throw new System.NotImplementedException();
+            BitmapImage bmp = new BitmapImage
+            {
+                UriSource = new Uri(Path.Combine(Directory.GetCurrentDirectory(), "Images/HorizontalLinePic.png"))
+            };
+            return new Image { Source = bmp };
         }
     }
 }

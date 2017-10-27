@@ -1,4 +1,7 @@
-﻿namespace GrafikaKomputerowaProjekt.Restriction
+﻿using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+
+namespace GrafikaKomputerowaProjekt.Restriction
 {
     public class LengthStillRestriction : IRestriction
     {
@@ -7,7 +10,7 @@
             throw new System.NotImplementedException();
         }
 
-        public void DrawInformationPic(int v1x, int v2x)
+        public Image GetRestrictionPic()
         {
             throw new System.NotImplementedException();
         }

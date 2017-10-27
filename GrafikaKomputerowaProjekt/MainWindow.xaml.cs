@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using GrafikaKomputerowaProjekt.Restriction;
 
@@ -29,7 +30,7 @@ namespace GrafikaKomputerowaProjekt
         private int _verticleIndexer = 0;
         private const int VerticleSize = 10;
         private const int LinePointSize = 4;
-        private const int LineMarginOfError = 10;
+        private const int RestrictionPicY = 10;
         private Line _helpingLine;
         private Verticle _movingVerticle;
         private bool _isMovingVerticleSet = false;
@@ -659,6 +660,7 @@ namespace GrafikaKomputerowaProjekt
                 verticleTwo.Y = y;
 
                 RedrawPolygon();
+                SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
 
             }
         }
@@ -690,6 +692,7 @@ namespace GrafikaKomputerowaProjekt
                 verticleTwo.X = x;
 
                 RedrawPolygon();
+                SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
             }
         }
 
@@ -708,6 +711,14 @@ namespace GrafikaKomputerowaProjekt
 
                 RedrawPolygon();
             }
+        }
+
+        private void SetRestrictionPic(Line actualLine, int middleX, int y)
+        {
+            Image image = actualLine.Restriction.GetRestrictionPic();
+            canvas.Children.Add(image);
+            Canvas.SetLeft(image, middleX);
+            Canvas.SetTop(image, y + RestrictionPicY);
         }
 
         private Line FindNearbyLine(Line actualLine, bool nearV1)
