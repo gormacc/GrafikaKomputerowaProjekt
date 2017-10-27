@@ -55,8 +55,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Restriction\HorizontalLineRestriction.cs" />
+    <Compile Include="Restriction\IRestriction.cs" />
     <Compile Include="Line.cs" />
     <Compile Include="Properties\Annotations.cs" />
+    <Compile Include="RestrictionEnum.cs" />
+    <Compile Include="Restriction\LengthStillRestriction.cs" />
+    <Compile Include="Restriction\NoneRestriction.cs" />
+    <Compile Include="Restriction\VerticalLineRestriction.cs" />
     <Compile Include="Verticle.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -97,6 +103,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\HorizontalLinePic.png" />
+    <Resource Include="Images\VerticalLinePic.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

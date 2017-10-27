@@ -1,0 +1,10 @@
+﻿namespace GrafikaKomputerowaProjekt.Restriction
+{
+    public class HorizontalLineRestriction : IRestriction
+    {
+        public bool CheckRestrictionAvailability(Line v1Line, Line v2Line)
+        {
+            if(v1Line.Restriction.GetType() == typeof(HorizontalLineRestriction) || v2Line.Restriction.GetType() == typeof(HorizontalLineRestriction))
+        }
+    }
+}

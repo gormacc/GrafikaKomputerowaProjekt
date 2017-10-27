@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Windows.Shapes;
+using GrafikaKomputerowaProjekt.Restriction;
 
 namespace GrafikaKomputerowaProjekt
 {
@@ -11,6 +12,8 @@ namespace GrafikaKomputerowaProjekt
 
         public List<Rectangle> Rectangles = new List<Rectangle>();
 
+        public IRestriction Restriction = new NoneRestriction();
+
         public Line(int verticleOneId, int verticleTwoId, List<Rectangle> listOfRectangles)
         {
             VerticleOneId = verticleOneId;
@@ -18,5 +21,15 @@ namespace GrafikaKomputerowaProjekt
             Rectangles = listOfRectangles;
         }
 
+        public void EnableClicking()
+        {
+            int lineMarginOfError = Properties.Settings.Default.LineMarginOfError;
+            for (int i = lineMarginOfError; i < Rectangles.Count - lineMarginOfError; i++)
+            {
+                Rectangles[i].IsHitTestVisible = true;
+            }
+        }
     }
+
+    
 }

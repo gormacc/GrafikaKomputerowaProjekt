@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using GrafikaKomputerowaProjekt.Restriction;
 
 namespace GrafikaKomputerowaProjekt
 {
@@ -66,9 +67,22 @@ namespace GrafikaKomputerowaProjekt
 
         private void InitializeLineContextMenu()
         {
-            MenuItem mi = new MenuItem { Header = "Dodaj wierzcholek" };
-            mi.Click += AddVerticleInTheMiddleOfLine;
-            _lineContextMenu.Items.Add(mi);
+            MenuItem mi1 = new MenuItem { Header = "Dodaj wierzcholek" };
+            mi1.Click += AddVerticleInTheMiddleOfLine;
+
+            MenuItem mi2 = new MenuItem {Header = "Krawedz pozioma"};
+            mi2.Click += AddHorizontalLineRestriction;
+
+            MenuItem mi3 = new MenuItem { Header = "Krawedz pionowa" };
+            mi3.Click += AddVerticalLineRestriction;
+
+            MenuItem mi4 = new MenuItem { Header = "Stała długość" };
+            mi4.Click += AddLengthStillRestriction;
+
+            _lineContextMenu.Items.Add(mi1);
+            _lineContextMenu.Items.Add(mi2);
+            _lineContextMenu.Items.Add(mi3);
+            _lineContextMenu.Items.Add(mi4);
         }
 
         #endregion
@@ -126,15 +140,6 @@ namespace GrafikaKomputerowaProjekt
             }
             canvas.MouseMove -= MoveVerticle;
         }
-
-        private void EnableClickingOneLine(Line line)
-        {
-            for (int i = LineMarginOfError; i < line.Rectangles.Count - LineMarginOfError; i++)
-            {
-                line.Rectangles[i].IsHitTestVisible = true;
-            }
-        }
-
 
         #endregion
 
@@ -342,7 +347,7 @@ namespace GrafikaKomputerowaProjekt
                 foreach (var line in lines)
                 {
                     RedrawLine(line);
-                    EnableClickingOneLine(line);
+                    line.EnableClicking();
                 }
 
                 //--------------------------------
@@ -415,7 +420,7 @@ namespace GrafikaKomputerowaProjekt
         private Line CreateLine(Verticle v1, Verticle v2)
         {
             Line line = new Line(v1.Id, v2.Id, DrawLine(v1, v2));
-            EnableClickingOneLine(line);
+            line.EnableClicking();
             return line;
         }
 
@@ -625,6 +630,118 @@ namespace GrafikaKomputerowaProjekt
 
                 _lines.Add(CreateLine(verticleOne, newVerticle));
                 _lines.Add(CreateLine(newVerticle, verticleTwo));
+            }
+        }
+
+        private void AddHorizontalLineRestriction(object sender, RoutedEventArgs routedEventArgs)
+        {
+            MenuItem mi = sender as MenuItem;
+
+            if (mi != null)
+            {
+                Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
+                Line line = FindLine(rc);
+
+                line.Restriction = new HorizontalLineRestriction();
+
+                if (!line.Restriction.CheckRestrictionAvailability(FindNearbyLine(line, true),
+                    FindNearbyLine(line, false)))
+                {
+                    line.Restriction = new NoneRestriction();
+                    return;
+                }
+
+                Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
+                Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
+
+                int y = (verticleOne.Y + verticleTwo.Y) / 2;
+                verticleOne.Y = y;
+                verticleTwo.Y = y;
+
+                RedrawPolygon();
+
+            }
+        }
+
+        private void AddVerticalLineRestriction(object sender, RoutedEventArgs routedEventArgs)
+        {
+            MenuItem mi = sender as MenuItem;
+
+            if (mi != null)
+            {
+                Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
+                Line line = FindLine(rc);
+
+                line.Restriction = new VerticalLineRestriction();
+
+                if (!line.Restriction.CheckRestrictionAvailability(FindNearbyLine(line, true),
+                    FindNearbyLine(line, false)))
+                {
+                    line.Restriction = new NoneRestriction();
+                    return;
+                }
+
+                
+                Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
+                Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
+
+                int x = (verticleOne.X + verticleTwo.X) / 2;
+                verticleOne.X = x;
+                verticleTwo.X = x;
+
+                RedrawPolygon();
+            }
+        }
+
+        private void AddLengthStillRestriction(object sender, RoutedEventArgs routedEventArgs)
+        {
+            MenuItem mi = sender as MenuItem;
+
+            if (mi != null)
+            {
+                Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
+                Line line = FindLine(rc);
+
+                line.Restriction = new LengthStillRestriction();
+
+
+
+                RedrawPolygon();
+            }
+        }
+
+        private Line FindNearbyLine(Line actualLine, bool nearV1)
+        {
+            if (nearV1)
+            {
+                return _lines.FirstOrDefault(
+                    l => (l.VerticleOneId == actualLine.VerticleOneId && l.VerticleTwoId != actualLine.VerticleTwoId) ||
+                         (l.VerticleTwoId == actualLine.VerticleOneId && l.VerticleOneId != actualLine.VerticleTwoId));
+            }
+            else
+            {
+                return _lines.FirstOrDefault(
+                    l => (l.VerticleOneId == actualLine.VerticleTwoId && l.VerticleTwoId != actualLine.VerticleOneId) ||
+                         (l.VerticleTwoId == actualLine.VerticleTwoId && l.VerticleOneId != actualLine.VerticleOneId));
+            }
+        }
+
+        private void RedrawPolygon()
+        {
+            canvas.Children.Clear();
+
+            foreach (var verticle in _verticles)
+            {
+                verticle.Rectangle = SetPixel(verticle.X, verticle.Y, VerticleSize, true);
+                verticle.Rectangle.ContextMenu = _verticleContextMenu;
+            }
+            EnableMovingVerticles();
+            
+
+            foreach (var line in _lines)
+            {
+                RedrawLine(line);
+                line.EnableClicking();
             }
         }
 
