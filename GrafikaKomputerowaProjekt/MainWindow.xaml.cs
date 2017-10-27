@@ -57,13 +57,10 @@ namespace GrafikaKomputerowaProjekt
 
         private void InitializeFirstVerticleContextMenu()
         {
-            MenuItem deleteVerticleMenuItem = new MenuItem { Header = "Usun wierzchołek" };
-            deleteVerticleMenuItem.Click += DeleteVerticle;
 
             MenuItem endDrawingPolygonMenuItem = new MenuItem { Header = "Zakoncz rysowanie wielokata" };
             endDrawingPolygonMenuItem.Click += EndDrawingPolygon;
 
-            _firstVerticleContextMenu.Items.Add(deleteVerticleMenuItem);
             _firstVerticleContextMenu.Items.Add(endDrawingPolygonMenuItem);
         }
 
@@ -153,8 +150,13 @@ namespace GrafikaKomputerowaProjekt
                 return;
 
             _polygonMade = true;
-            _verticles.FirstOrDefault(v => v.Id == 0).Rectangle.ContextMenu = _verticleContextMenu;
+            foreach (var verticle in _verticles)
+            {
+                verticle.Rectangle.ContextMenu = _verticleContextMenu;
+            }
             ClearHelpingLine();
+
+
 
             MenuItem mi = sender as MenuItem;
 
@@ -165,18 +167,51 @@ namespace GrafikaKomputerowaProjekt
                 Verticle endVerticle = _verticles.FirstOrDefault(v => Equals(v.Rectangle, rc));
                 Verticle lastVerticle = _verticles.LastOrDefault();
 
-                _lines.Add(CreateLine(lastVerticle, endVerticle)); 
+                _lines.Add(CreateLine(lastVerticle, endVerticle));
+
+                DeleteTail(endVerticle.Id);
             }
+
             DisableSettingVerticle();
             DisableDrawingHelpingLine();
             EnableMovingVerticles();
-            //EnableClickingLines();
+        }
 
+        private void DeleteTail(int endVerticleIndex)
+        {
+            List<Verticle> verticlesToDelete = new List<Verticle>();
+            List<Line> linesToDelete = new List<Line>();
+
+            foreach (var verticle in _verticles)
+            {
+                if (verticle.Id < endVerticleIndex)
+                {
+                    verticlesToDelete.Add(verticle);
+                }
+            }
+            foreach (var line in _lines)
+            {
+                if (line.VerticleOneId < endVerticleIndex || line.VerticleTwoId < endVerticleIndex)
+                {
+                    linesToDelete.Add(line);
+                }
+            }
+
+            foreach (var verticle in verticlesToDelete)
+            {
+                canvas.Children.Remove(verticle.Rectangle);
+                _verticles.Remove(verticle);
+            }
+            foreach (var line in linesToDelete)
+            {
+                ClearLine(line);
+                _lines.Remove(line);
+            }
         }
 
         private void DeleteVerticle(object sender, RoutedEventArgs routedEventArgs) 
         {
-            if(_polygonMade && _verticles.Count < 3) return;
+            if(_polygonMade && _verticles.Count <= 3) return;
 
             MenuItem mi = sender as MenuItem;
 
@@ -232,7 +267,7 @@ namespace GrafikaKomputerowaProjekt
 
             Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
 
-            rectangle.ContextMenu = _verticleIndexer == 0 ? _firstVerticleContextMenu : _verticleContextMenu;
+            rectangle.ContextMenu = _firstVerticleContextMenu;
 
             _verticles.Add(new Verticle(_verticleIndexer++, x, y, rectangle));
 
@@ -608,5 +643,6 @@ namespace GrafikaKomputerowaProjekt
             return _lines.FirstOrDefault();
         }
 
+        
     }
 }
