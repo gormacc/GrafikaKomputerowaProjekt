@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using GrafikaKomputerowaProjekt.Restriction;
 
@@ -13,8 +11,7 @@ namespace GrafikaKomputerowaProjekt
 {
     //notatki
 
-    //Context Menu , usuwanie wierzchołków ???? 
-    // poruszanie wielokąta słabo działa, trzeba wykrywać czy kliknięto w środku
+
     //notatki
 
     /// <summary>
@@ -30,13 +27,14 @@ namespace GrafikaKomputerowaProjekt
         private int _verticleIndexer = 0;
         private const int VerticleSize = 10;
         private const int LinePointSize = 4;
-        private const int RestrictionPicY = 10;
+        private const int RestrictionMargines = 10;
         private Line _helpingLine;
         private Verticle _movingVerticle;
         private bool _isMovingVerticleSet = false;
         private bool _polygonMade = false;
         private int _movePolygonXPosition;
         private int _movePolygonYPosition;
+        private Line _lineStillLengthBeingRestricted;
 
         public MainWindow()
         {
@@ -80,10 +78,14 @@ namespace GrafikaKomputerowaProjekt
             MenuItem mi4 = new MenuItem { Header = "Stała długość" };
             mi4.Click += AddLengthStillRestriction;
 
+            MenuItem mi5 = new MenuItem { Header = "Usuń restrykcje" };
+            mi5.Click += RemoveRestriction;
+
             _lineContextMenu.Items.Add(mi1);
             _lineContextMenu.Items.Add(mi2);
             _lineContextMenu.Items.Add(mi3);
             _lineContextMenu.Items.Add(mi4);
+            _lineContextMenu.Items.Add(mi5);
         }
 
         #endregion
@@ -170,7 +172,7 @@ namespace GrafikaKomputerowaProjekt
             {
                 Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
 
-                Verticle endVerticle = _verticles.FirstOrDefault(v => Equals(v.Rectangle, rc));
+                Verticle endVerticle = FindVerticeByRectangle(rc);
                 Verticle lastVerticle = _verticles.LastOrDefault();
 
                 _lines.Add(CreateLine(lastVerticle, endVerticle));
@@ -226,7 +228,7 @@ namespace GrafikaKomputerowaProjekt
                 Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
                 canvas.Children.Remove(rc);
 
-                Verticle verticle = _verticles.FirstOrDefault(v => Equals(v.Rectangle, rc));
+                Verticle verticle = FindVerticeByRectangle(rc);
 
                 DeleteLine(verticle);
                 _verticles.Remove(verticle);
@@ -259,8 +261,8 @@ namespace GrafikaKomputerowaProjekt
                 lineTwo.VerticleOneId == deletedVerticleId ? lineTwo.VerticleTwoId : lineTwo.VerticleOneId
             };
 
-            Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == verticlesIds[0]);
-            Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == verticlesIds[1]);
+            Verticle verticleOne = FindVerticleById(verticlesIds[0]);
+            Verticle verticleTwo = FindVerticleById(verticlesIds[1]);
 
             _lines.Add(CreateLine(verticleOne, verticleTwo)); 
         }
@@ -297,8 +299,7 @@ namespace GrafikaKomputerowaProjekt
 
             if (rectangle != null)
             {
-                _movingVerticle = _verticles.FirstOrDefault(v => Equals(v.Rectangle, rectangle));
-
+                _movingVerticle = FindVerticeByRectangle(rectangle);
                 _isMovingVerticleSet = true;
             }
         }
@@ -395,15 +396,17 @@ namespace GrafikaKomputerowaProjekt
             foreach (var line in _lines)
             {
                 RedrawLine(line);
+                line.EnableClicking();
             }
 
         }
 
         private void RedrawLine(Line line)
         {
-            Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
-            Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
-            line.Rectangles = DrawLine(verticleOne, verticleTwo);
+            Verticle verticleOne = FindVerticleById(line.VerticleOneId); 
+            Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
+            line.Rectangles = DrawLine(verticleOne, verticleTwo);            
+            SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
         }
 
         private Rectangle SetPixel(int x, int y, int size, bool hitTestVisible = false)
@@ -518,6 +521,95 @@ namespace GrafikaKomputerowaProjekt
             return listOfRectangles;
         }
 
+        private void ResetLengthRestrictedLine(Verticle v1, Verticle v2, int length) // współrzędne v2 są zmieniane
+        {
+            int x1 = v1.X;
+            int x2 = v2.X;
+            int y1 = v1.Y;
+            int y2 = v2.Y;
+
+            int counter = 0;
+
+            int d, dx, dy, ai, bi, xi, yi;
+            int x = x1, y = y1;
+            // ustalenie kierunku rysowania
+            if (x1 < x2)
+            {
+                xi = 1;
+                dx = x2 - x1;
+            }
+            else
+            {
+                xi = -1;
+                dx = x1 - x2;
+            }
+            // ustalenie kierunku rysowania
+            if (y1 < y2)
+            {
+                yi = 1;
+                dy = y2 - y1;
+            }
+            else
+            {
+                yi = -1;
+                dy = y1 - y2;
+            }
+
+            // pierwszy piksel
+            counter++;
+
+            // oś wiodąca OX
+            if (dx > dy)
+            {
+                ai = (dy - dx) * 2;
+                bi = dy * 2;
+                d = bi - dx;
+                // pętla po kolejnych x
+                while (counter++ != length)
+                {
+                    // test współczynnika
+                    if (d >= 0)
+                    {
+                        x += xi;
+                        y += yi;
+                        d += ai;
+                    }
+                    else
+                    {
+                        d += bi;
+                        x += xi;
+                    }                   
+                }
+            }
+            // oś wiodąca OY
+            else
+            {
+                ai = (dx - dy) * 2;
+                bi = dx * 2;
+                d = bi - dy;
+                // pętla po kolejnych y
+                while (counter++ != length)
+                {
+                    // test współczynnika
+                    if (d >= 0)
+                    {
+                        x += xi;
+                        y += yi;
+                        d += ai;
+                    }
+                    else
+                    {
+                        d += bi;
+                        y += yi;
+                    }
+                }
+            }
+
+            //ustawienie x i y
+            v2.X = x;
+            v2.Y = y;
+        }
+
 
         private void ClearCanvasButton(object sender, RoutedEventArgs e)
         {
@@ -562,6 +654,7 @@ namespace GrafikaKomputerowaProjekt
             {
                 canvas.Children.Remove(rectangle);
             }
+            canvas.Children.Remove(line.RestrictionPic);
         }
 
         // zaznaczanie linii
@@ -613,8 +706,8 @@ namespace GrafikaKomputerowaProjekt
 
                 Line line = FindLine(rc);
 
-                Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
-                Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
+                Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+                Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
 
                 ClearLine(line);
                 _lines.Remove(line);
@@ -652,16 +745,16 @@ namespace GrafikaKomputerowaProjekt
                     return;
                 }
 
-                Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
-                Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
+                Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+                Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
 
                 int y = (verticleOne.Y + verticleTwo.Y) / 2;
                 verticleOne.Y = y;
                 verticleTwo.Y = y;
 
-                RedrawPolygon();
+                
                 SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
-
+                RedrawPolygon();
             }
         }
 
@@ -683,16 +776,16 @@ namespace GrafikaKomputerowaProjekt
                     return;
                 }
 
-                
-                Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
-                Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
+
+                Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+                Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
 
                 int x = (verticleOne.X + verticleTwo.X) / 2;
                 verticleOne.X = x;
                 verticleTwo.X = x;
 
-                RedrawPolygon();
                 SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
+                RedrawPolygon();                
             }
         }
 
@@ -707,18 +800,25 @@ namespace GrafikaKomputerowaProjekt
 
                 line.Restriction = new LengthStillRestriction();
 
+                LineLengthStackPanel.Visibility = Visibility.Visible;
+                canvas.IsHitTestVisible = false;
 
+                Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+                Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
 
-                RedrawPolygon();
+                _lineStillLengthBeingRestricted = line;
+
+                SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
             }
         }
 
         private void SetRestrictionPic(Line actualLine, int middleX, int y)
         {
             Image image = actualLine.Restriction.GetRestrictionPic();
+            actualLine.RestrictionPic = image;
             canvas.Children.Add(image);
-            Canvas.SetLeft(image, middleX);
-            Canvas.SetTop(image, y + RestrictionPicY);
+            Canvas.SetLeft(image, middleX + RestrictionMargines);
+            Canvas.SetTop(image, y + RestrictionMargines);
         }
 
         private Line FindNearbyLine(Line actualLine, bool nearV1)
@@ -756,6 +856,21 @@ namespace GrafikaKomputerowaProjekt
             }
         }
 
+        private void RemoveRestriction(object sender, RoutedEventArgs routedEventArgs)
+        {
+            MenuItem mi = sender as MenuItem;
+
+            if (mi != null)
+            {
+                Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
+                Line line = FindLine(rc);
+
+                line.Restriction = new NoneRestriction();
+                canvas.Children.Remove(line.RestrictionPic);
+                line.RestrictionPic = new Image();
+            }
+        }
+
         private Line FindLine(Rectangle rectangle)
         {
             foreach (var line in _lines)
@@ -771,6 +886,28 @@ namespace GrafikaKomputerowaProjekt
             return _lines.FirstOrDefault();
         }
 
-        
+        private Verticle FindVerticleById(int id)
+        {
+            return _verticles.FirstOrDefault(v => v.Id == id);
+        }
+
+        private Verticle FindVerticeByRectangle(Rectangle rectangle)
+        {
+            return _verticles.FirstOrDefault(v => Equals(v.Rectangle, rectangle));
+        }
+
+        private void SetLengthOfRestrictedLine(object sender, RoutedEventArgs e)
+        {
+            int val;
+            canvas.IsHitTestVisible = true;
+            LineLengthStackPanel.Visibility = Visibility.Collapsed;
+            if(_lineStillLengthBeingRestricted == null) return;
+            if (!int.TryParse(LineLengthTextBox.Text, out val)) return;
+            Verticle verticleOne = FindVerticleById(_lineStillLengthBeingRestricted.VerticleOneId);
+            Verticle verticleTwo = FindVerticleById(_lineStillLengthBeingRestricted.VerticleTwoId);
+            ResetLengthRestrictedLine(verticleOne, verticleTwo, val);
+
+            RedrawPolygon();
+        }
     }
 }

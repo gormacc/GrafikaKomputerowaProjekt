@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using GrafikaKomputerowaProjekt.Properties;
 
 namespace GrafikaKomputerowaProjekt.Restriction
 {
@@ -15,11 +17,18 @@ namespace GrafikaKomputerowaProjekt.Restriction
         public Image GetRestrictionPic()
         {
             BitmapImage bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.UriSource = new Uri(Path.Combine(Directory.GetCurrentDirectory(), "Images", "VerticalLinePic.png"));
-            bmp.EndInit();
+            try
+            {
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(Path.Combine(Directory.GetCurrentDirectory(), "Resources", "VerticalLinePic.png" ));
+                bmp.EndInit();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
 
-            return new Image { Source = bmp };
+            return new Image() {Source = bmp};
         }
     }
 }

@@ -8,7 +8,6 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("images/horizontallinepic.png")]
-[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("images/verticallinepic.png")]
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resources/lengthstillpic.png")]
 
 

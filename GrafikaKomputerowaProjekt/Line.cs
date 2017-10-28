@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Windows.Media.Imaging;
+using System.Windows.Controls;
 using System.Windows.Shapes;
 using GrafikaKomputerowaProjekt.Restriction;
 
@@ -15,7 +15,7 @@ namespace GrafikaKomputerowaProjekt
 
         public IRestriction Restriction = new NoneRestriction();
 
-        public BitmapImage RestrictionPic = new BitmapImage();
+        public Image RestrictionPic = new Image();
 
         public Line(int verticleOneId, int verticleTwoId, List<Rectangle> listOfRectangles)
         {

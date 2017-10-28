@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 
@@ -14,10 +15,19 @@ namespace GrafikaKomputerowaProjekt.Restriction
 
         public Image GetRestrictionPic()
         {
-            BitmapImage bmp = new BitmapImage
+            BitmapImage bmp = new BitmapImage();
+            try
             {
-                UriSource = new Uri(Path.Combine(Directory.GetCurrentDirectory(), "Images/HorizontalLinePic.png"))
-            };
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(Path.Combine(Directory.GetCurrentDirectory(), "Resources", "HorizontalLinePic.png"));
+                bmp.EndInit();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
+
+
             return new Image { Source = bmp };
         }
     }

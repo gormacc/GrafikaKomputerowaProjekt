@@ -1,4 +1,7 @@
-﻿using System.Windows.Controls;
+﻿using System;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 
 namespace GrafikaKomputerowaProjekt.Restriction
@@ -12,7 +15,20 @@ namespace GrafikaKomputerowaProjekt.Restriction
 
         public Image GetRestrictionPic()
         {
-            throw new System.NotImplementedException();
+            BitmapImage bmp = new BitmapImage();
+            try
+            {
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(Path.Combine(Directory.GetCurrentDirectory(), "Resources", "LengthStillPic.png"));
+                bmp.EndInit();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
+
+
+            return new Image { Source = bmp };
         }
     }
 }
