@@ -26,5 +26,11 @@ namespace GrafikaKomputerowaProjekt
             Y = y;
             Rectangle = rectangle;
         }
+
+        public void SetNewCoordinates(int x, int y)
+        {
+            X = x;
+            Y = y;
+        }
     }
 }

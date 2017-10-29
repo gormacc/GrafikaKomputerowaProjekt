@@ -1,18 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using GrafikaKomputerowaProjekt.Restriction;
 
 namespace GrafikaKomputerowaProjekt
 {
     //notatki
 
-    //Context Menu , usuwanie wierzchołków ???? 
-    // poruszanie wielokąta słabo działa, trzeba wykrywać czy kliknięto w środku
+
     //notatki
 
     /// <summary>
@@ -20,22 +19,26 @@ namespace GrafikaKomputerowaProjekt
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly List<Verticle> _verticles = new List<Verticle>();
+        private List<Verticle> _verticles = new List<Verticle>();
+        private List<Verticle> _copyOfVerticles = new List<Verticle>();
         private readonly List<Line> _lines = new List<Line>();
         private readonly ContextMenu _verticleContextMenu = new ContextMenu();
         private readonly ContextMenu _firstVerticleContextMenu = new ContextMenu();
         private readonly ContextMenu _lineContextMenu = new ContextMenu();
+
+        private int VerticleSize => Properties.Settings.Default.VerticleSize;
+        private int LinePointSize => Properties.Settings.Default.LinePixelSize;
+        private int RestrictionMargin => Properties.Settings.Default.RestrictionMargin;
         private int _verticleIndexer = 0;
-        private const int VerticleSize = 10;
-        private const int LinePointSize = 4;
-        private const int LineMarginOfError = 10;
         private Line _helpingLine;
         private Verticle _movingVerticle;
         private bool _isMovingVerticleSet = false;
         private bool _polygonMade = false;
         private int _movePolygonXPosition;
         private int _movePolygonYPosition;
-
+        private Line _lineStillLengthBeingRestricted;
+        private int _startCheckingRestrictionVerticleId = 0;
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -43,6 +46,12 @@ namespace GrafikaKomputerowaProjekt
             InitializeVerticleContextMenu();
             InitializeFirstVerticleContextMenu();
             InitializeLineContextMenu();
+        }
+
+        private void InitializeCanvas()
+        {
+            EnableSettingVerticle();
+            EnableDrawingHelpingLine();
         }
 
         #region Initializing Context Menus
@@ -66,9 +75,26 @@ namespace GrafikaKomputerowaProjekt
 
         private void InitializeLineContextMenu()
         {
-            MenuItem mi = new MenuItem { Header = "Dodaj wierzcholek" };
-            mi.Click += AddVerticleInTheMiddleOfLine;
-            _lineContextMenu.Items.Add(mi);
+            MenuItem mi1 = new MenuItem { Header = "Dodaj wierzcholek" };
+            mi1.Click += AddVerticleInTheMiddleOfLine;
+
+            MenuItem mi2 = new MenuItem {Header = "Krawedz pozioma"};
+            mi2.Click += AddHorizontalLineRestriction;
+
+            MenuItem mi3 = new MenuItem { Header = "Krawedz pionowa" };
+            mi3.Click += AddVerticalLineRestriction;
+
+            MenuItem mi4 = new MenuItem { Header = "Stała długość" };
+            mi4.Click += AddLengthStillRestriction;
+
+            MenuItem mi5 = new MenuItem { Header = "Usuń restrykcje" };
+            mi5.Click += RemoveRestriction;
+
+            _lineContextMenu.Items.Add(mi1);
+            _lineContextMenu.Items.Add(mi2);
+            _lineContextMenu.Items.Add(mi3);
+            _lineContextMenu.Items.Add(mi4);
+            _lineContextMenu.Items.Add(mi5);
         }
 
         #endregion
@@ -114,7 +140,7 @@ namespace GrafikaKomputerowaProjekt
                 ver.Rectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
                 ver.Rectangle.MouseLeftButtonUp += LeftButtonUpVerticle;
             }
-            canvas.MouseMove += MoveVerticle;
+            canvas.MouseLeftButtonUp += LeftButtonUpVerticle;
         }
 
         private void DisableMovingVerticles()
@@ -124,29 +150,29 @@ namespace GrafikaKomputerowaProjekt
                 ver.Rectangle.MouseLeftButtonDown -= LeftButtonDownVerticle;
                 ver.Rectangle.MouseLeftButtonUp -= LeftButtonUpVerticle;
             }
-            canvas.MouseMove -= MoveVerticle;
+            canvas.MouseLeftButtonUp -= LeftButtonUpVerticle;
         }
-
-        private void EnableClickingOneLine(Line line)
-        {
-            for (int i = LineMarginOfError; i < line.Rectangles.Count - LineMarginOfError; i++)
-            {
-                line.Rectangles[i].IsHitTestVisible = true;
-            }
-        }
-
 
         #endregion
 
-        private void InitializeCanvas()
+        #region Context Menu Clicks
+
+        private bool CheckMenuItem(object menuItemToCheck, out Rectangle rc)
         {
-            EnableSettingVerticle();
-            EnableDrawingHelpingLine();
+            MenuItem mi = menuItemToCheck as MenuItem;
+            if (mi != null)
+            {
+                rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
+                return true;
+            }
+
+            rc = new Rectangle();
+            return false;
         }
 
         private void EndDrawingPolygon(object sender, RoutedEventArgs routedEventArgs)
         {
-            if(_verticles.Count < 3)
+            if (_verticles.Count < 3)
                 return;
 
             _polygonMade = true;
@@ -156,17 +182,11 @@ namespace GrafikaKomputerowaProjekt
             }
             ClearHelpingLine();
 
-
-
-            MenuItem mi = sender as MenuItem;
-
-            if (mi != null)
+            Rectangle rc;
+            if (CheckMenuItem(sender, out rc))
             {
-                Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
-
-                Verticle endVerticle = _verticles.FirstOrDefault(v => Equals(v.Rectangle, rc));
+                Verticle endVerticle = FindVerticeByRectangle(rc);
                 Verticle lastVerticle = _verticles.LastOrDefault();
-
                 _lines.Add(CreateLine(lastVerticle, endVerticle));
 
                 DeleteTail(endVerticle.Id);
@@ -175,6 +195,7 @@ namespace GrafikaKomputerowaProjekt
             DisableSettingVerticle();
             DisableDrawingHelpingLine();
             EnableMovingVerticles();
+            MovePolygonButton.IsEnabled = true;
         }
 
         private void DeleteTail(int endVerticleIndex)
@@ -209,28 +230,24 @@ namespace GrafikaKomputerowaProjekt
             }
         }
 
-        private void DeleteVerticle(object sender, RoutedEventArgs routedEventArgs) 
+        private void DeleteVerticle(object sender, RoutedEventArgs routedEventArgs)
         {
-            if(_polygonMade && _verticles.Count <= 3) return;
+            if (_polygonMade && _verticles.Count <= 3) return;
 
-            MenuItem mi = sender as MenuItem;
-
-            if (mi != null)
+            Rectangle rc;
+            if (CheckMenuItem(sender, out rc))
             {
-                Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
                 canvas.Children.Remove(rc);
-
-                Verticle verticle = _verticles.FirstOrDefault(v => Equals(v.Rectangle, rc));
+                Verticle verticle = FindVerticeByRectangle(rc);
 
                 DeleteLine(verticle);
                 _verticles.Remove(verticle);
-            }                     
+            }
         }
 
         private void DeleteLine(Verticle verticle)
         {
             int verticleId = verticle.Id;
-
             List<Line> linesToDelete = new List<Line>(_lines.Where(l => l.VerticleOneId == verticleId || l.VerticleTwoId == verticleId));
 
             foreach (var line in linesToDelete)
@@ -253,30 +270,138 @@ namespace GrafikaKomputerowaProjekt
                 lineTwo.VerticleOneId == deletedVerticleId ? lineTwo.VerticleTwoId : lineTwo.VerticleOneId
             };
 
-            Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == verticlesIds[0]);
-            Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == verticlesIds[1]);
+            Verticle verticleOne = FindVerticleById(verticlesIds[0]);
+            Verticle verticleTwo = FindVerticleById(verticlesIds[1]);
 
-            _lines.Add(CreateLine(verticleOne, verticleTwo)); 
+            _lines.Add(CreateLine(verticleOne, verticleTwo));
         }
 
-        private void SetVerticle(object sender, MouseButtonEventArgs e)
+        private void AddVerticleInTheMiddleOfLine(object sender, RoutedEventArgs routedEventArgs)
         {
-            Point p = Mouse.GetPosition((Canvas)sender);
-            int x = (int) p.X;
-            int y = (int) p.Y;
-
-            Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
-
-            rectangle.ContextMenu = _firstVerticleContextMenu;
-
-            _verticles.Add(new Verticle(_verticleIndexer++, x, y, rectangle));
-
-            if (_verticles.Count >= 2)
+            Rectangle rc;
+            if (CheckMenuItem(sender, out rc))
             {
-                int index = _verticles.Count - 2;
-                _lines.Add(CreateLine(_verticles[index], _verticles[index + 1])); 
+                Line line = FindLine(rc);
+                Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+                Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
+
+                ClearLine(line);
+                _lines.Remove(line);
+
+                int x = (verticleOne.X + verticleTwo.X) / 2;
+                int y = (verticleOne.Y + verticleTwo.Y) / 2;
+
+                Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
+                rectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
+                rectangle.MouseLeftButtonUp += LeftButtonUpVerticle;
+                rectangle.ContextMenu = _verticleContextMenu;
+                Verticle newVerticle = new Verticle(_verticleIndexer++, x, y, rectangle);
+                _verticles.Add(newVerticle);
+
+                _lines.Add(CreateLine(verticleOne, newVerticle));
+                _lines.Add(CreateLine(newVerticle, verticleTwo));
             }
         }
+
+        private void AddHorizontalLineRestriction(object sender, RoutedEventArgs routedEventArgs)
+        {
+            Rectangle rc;
+            if (CheckMenuItem(sender, out rc))
+            {
+                Line line = FindLine(rc);
+                line.Restriction = new HorizontalLineRestriction();
+
+                if (!line.Restriction.CheckRestrictionAvailability(FindNearbyLine(line, true),
+                    FindNearbyLine(line, false)))
+                {
+                    line.Restriction = new NoneRestriction();
+                    return;
+                }
+
+                Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+                Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
+
+                int y = (verticleOne.Y + verticleTwo.Y) / 2;
+                verticleOne.Y = y;
+                verticleTwo.Y = y;
+
+                SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
+                RedrawPolygon();
+            }
+        }
+
+        private void AddVerticalLineRestriction(object sender, RoutedEventArgs routedEventArgs)
+        {
+            Rectangle rc;
+            if (CheckMenuItem(sender, out rc))
+            {
+                Line line = FindLine(rc);
+                line.Restriction = new VerticalLineRestriction();
+
+                if (!line.Restriction.CheckRestrictionAvailability(FindNearbyLine(line, true),
+                    FindNearbyLine(line, false)))
+                {
+                    line.Restriction = new NoneRestriction();
+                    return;
+                }
+
+                Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+                Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
+
+                int x = (verticleOne.X + verticleTwo.X) / 2;
+                verticleOne.X = x;
+                verticleTwo.X = x;
+
+                SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
+                RedrawPolygon();
+            }
+        }
+
+        private void AddLengthStillRestriction(object sender, RoutedEventArgs routedEventArgs)
+        {
+            Rectangle rc;
+            if (CheckMenuItem(sender, out rc))
+            {
+                Line line = FindLine(rc);
+                line.Restriction = new LengthStillRestriction();
+
+                LineLengthStackPanel.Visibility = Visibility.Visible;
+                canvas.IsHitTestVisible = false;
+
+                Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+                Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
+
+                _lineStillLengthBeingRestricted = line;
+                SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
+            }
+        }
+
+        private void SetRestrictionPic(Line actualLine, int middleX, int y)
+        {
+            Image image = actualLine.Restriction.GetRestrictionPic();
+            actualLine.RestrictionPic = image;
+            canvas.Children.Add(image);
+            Canvas.SetLeft(image, middleX + RestrictionMargin);
+            Canvas.SetTop(image, y + RestrictionMargin);
+        }
+
+        private void SetLengthOfRestrictedLine(object sender, RoutedEventArgs e)
+        {
+            int val;
+            canvas.IsHitTestVisible = true;
+            LineLengthStackPanel.Visibility = Visibility.Collapsed;
+            if (_lineStillLengthBeingRestricted == null) return;
+            if (!int.TryParse(LineLengthTextBox.Text, out val)) return;
+            Verticle verticleOne = FindVerticleById(_lineStillLengthBeingRestricted.VerticleOneId);
+            Verticle verticleTwo = FindVerticleById(_lineStillLengthBeingRestricted.VerticleTwoId);
+            ResetLengthRestrictedLine(verticleOne, verticleTwo, val);
+            ((LengthStillRestriction)_lineStillLengthBeingRestricted.Restriction).LengthSet = val;
+            RedrawPolygon();
+        }
+
+        #endregion
+
+        #region Move Verticle
 
         private void LeftButtonDownVerticle(object sender, MouseButtonEventArgs e)
         {
@@ -288,17 +413,19 @@ namespace GrafikaKomputerowaProjekt
             }
 
             Rectangle rectangle = sender as Rectangle;
-
             if (rectangle != null)
             {
-                _movingVerticle = _verticles.FirstOrDefault(v => Equals(v.Rectangle, rectangle));
-
+                _movingVerticle = FindVerticeByRectangle(rectangle);
                 _isMovingVerticleSet = true;
+                _copyOfVerticles = new List<Verticle>(_verticles);
+                canvas.MouseMove += MoveVerticle;
             }
         }
 
         private void LeftButtonUpVerticle(object sender, MouseButtonEventArgs e)
         {
+            canvas.MouseMove -= MoveVerticle;
+
             _movingVerticle = null;
             _isMovingVerticleSet = false;
         }
@@ -307,32 +434,40 @@ namespace GrafikaKomputerowaProjekt
         {
             if (_isMovingVerticleSet)
             {
+                //ustalenie pozycji myszki
+                int x, y;
+                GetMousePosition(sender, out x, out y);
+
                 // usuwanie wierzchołka i linii
 
-                canvas.Children.Remove(_movingVerticle.Rectangle);
-
                 int verticleId = _movingVerticle.Id;
-
                 List<Line> lines = new List<Line>(_lines.Where(l => l.VerticleOneId == verticleId || l.VerticleTwoId == verticleId));
 
+                foreach (var line in lines)
+                {
+                    if (line.Restriction.GetType() != typeof(NoneRestriction))
+                    {
+                        _startCheckingRestrictionVerticleId = verticleId;
+                        _movingVerticle.SetNewCoordinates(x,y);
+                        RecurencyCheckingRestriction(line, verticleId);
+                        return;
+                    }
+                }
+
+                canvas.Children.Remove(_movingVerticle.Rectangle);
                 foreach (var line in lines)
                 {
                     ClearLine(line);
                     line.Rectangles.Clear();
                 }
 
-                // -------------
+                // -------------                
 
                 // nowy punkt wierzchołka
-                Point p = Mouse.GetPosition((Canvas)sender);
-                int x = (int)p.X;
-                int y = (int)p.Y;
-
                 Rectangle newRectangle = SetPixel(x, y, VerticleSize, true);
                 newRectangle.ContextMenu = _verticleContextMenu;
                 newRectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
                 newRectangle.MouseLeftButtonUp += LeftButtonUpVerticle;
-
                 _movingVerticle.SetNewRectangle(x, y, newRectangle);
 
                 // --------------------
@@ -342,18 +477,80 @@ namespace GrafikaKomputerowaProjekt
                 foreach (var line in lines)
                 {
                     RedrawLine(line);
-                    EnableClickingOneLine(line);
+                    line.EnableClicking();
                 }
 
                 //--------------------------------
             }
         }
 
-        private void LeftButtonDownPolygon(object sender, MouseButtonEventArgs e) // dodać sprawdzanie czy kliknięto w środek wielokąta
+        private void RecurencyCheckingRestriction(Line line, int oppositeDirectionVerticle)
         {
-            Point p = Mouse.GetPosition((Canvas)sender);
-            _movePolygonXPosition = (int) p.X;
-            _movePolygonYPosition = (int) p.Y;
+            int directionVerticle = line.VerticleOneId == oppositeDirectionVerticle
+                ? line.VerticleTwoId
+                : line.VerticleOneId;
+
+            Verticle verticleMoved = FindVerticleByIdInCopy(oppositeDirectionVerticle);
+            Verticle secondVerticle = FindVerticleByIdInCopy(directionVerticle);
+            line.Restriction.ReorganizeLine(verticleMoved, secondVerticle);
+
+            if (directionVerticle == _startCheckingRestrictionVerticleId)
+            {
+                _verticles = _copyOfVerticles;
+                RedrawPolygon();
+                return;
+            }
+
+            Line nextLine = FindNearbyLine(line, line.VerticleOneId == directionVerticle);
+            RecurencyCheckingRestriction(nextLine, directionVerticle);
+        }
+
+        #endregion
+
+        #region Move Polygon
+
+        private void AllowMovingPolygon(object sender, RoutedEventArgs e)
+        {
+            DisableMovingVerticles();
+            EnableMovingPolygon();
+
+            foreach (var verticle in _verticles)
+            {
+                verticle.Rectangle.MouseLeftButtonUp += LeftButtonUpPolygon;
+            }
+            foreach (var line in _lines)
+            {
+                foreach (var rectangle in line.Rectangles)
+                {
+                    rectangle.MouseLeftButtonUp += LeftButtonUpPolygon;
+                }
+            }
+        }
+
+        private void ForbidMovingPolygon(object sender, RoutedEventArgs e)
+        {
+            EnableMovingVerticles();
+            DisableMovingPolygon();
+
+            foreach (var verticle in _verticles)
+            {
+                verticle.Rectangle.MouseLeftButtonUp -= LeftButtonUpPolygon;
+            }
+            foreach (var line in _lines)
+            {
+                foreach (var rectangle in line.Rectangles)
+                {
+                    rectangle.MouseLeftButtonUp -= LeftButtonUpPolygon;
+                }
+            }
+        }
+
+        private void LeftButtonDownPolygon(object sender, MouseButtonEventArgs e)
+        {
+            int x, y;
+            GetMousePosition(sender, out x, out y);
+            _movePolygonXPosition = x;
+            _movePolygonYPosition = y;
 
             canvas.MouseMove += MovePolygon;
         }
@@ -365,11 +562,10 @@ namespace GrafikaKomputerowaProjekt
 
         private void MovePolygon(object sender, MouseEventArgs e)
         {
-            if(_verticles.Count == 0) return;
+            if (_verticles.Count == 0) return;
 
-            Point p = Mouse.GetPosition((Canvas)sender);
-            int x = (int)p.X;
-            int y = (int)p.Y;
+            int x, y;
+            GetMousePosition(sender, out x, out y);
 
             canvas.Children.Clear();
 
@@ -389,34 +585,41 @@ namespace GrafikaKomputerowaProjekt
             foreach (var line in _lines)
             {
                 RedrawLine(line);
+                line.EnableClicking();
             }
 
         }
 
-        private void RedrawLine(Line line)
+        #endregion
+
+        #region Drawing
+
+        private void SetVerticle(object sender, MouseButtonEventArgs e)
         {
-            Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
-            Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
-            line.Rectangles = DrawLine(verticleOne, verticleTwo);
+            int x, y;
+            GetMousePosition(sender, out x, out y);
+
+            Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
+            rectangle.ContextMenu = _firstVerticleContextMenu;
+            _verticles.Add(new Verticle(_verticleIndexer++, x, y, rectangle));
+
+            if (_verticles.Count >= 2)
+            {
+                int index = _verticles.Count - 2;
+                _lines.Add(CreateLine(_verticles[index], _verticles[index + 1]));
+            }
         }
 
         private Rectangle SetPixel(int x, int y, int size, bool hitTestVisible = false)
         {
             Rectangle rectangle = new Rectangle() { Width = size, Height = size, Fill = Brushes.Black };
+            rectangle.IsHitTestVisible = hitTestVisible;
 
             canvas.Children.Add(rectangle);
             Canvas.SetLeft(rectangle, x);
             Canvas.SetTop(rectangle, y);
-
-            rectangle.IsHitTestVisible = hitTestVisible;
+            
             return rectangle;
-        }
-
-        private Line CreateLine(Verticle v1, Verticle v2)
-        {
-            Line line = new Line(v1.Id, v2.Id, DrawLine(v1, v2));
-            EnableClickingOneLine(line);
-            return line;
         }
 
         private List<Rectangle> DrawLine(Verticle v1, Verticle v2)
@@ -454,7 +657,7 @@ namespace GrafikaKomputerowaProjekt
             }
 
             // pierwszy piksel
-            listOfRectangles.Add(SetPixel(x,y,LinePointSize));
+            listOfRectangles.Add(SetPixel(x, y, LinePointSize));
             Rectangle rectangle;
 
             // oś wiodąca OX
@@ -512,6 +715,108 @@ namespace GrafikaKomputerowaProjekt
             return listOfRectangles;
         }
 
+        private void ResetLengthRestrictedLine(Verticle v1, Verticle v2, int length) // współrzędne v2 są zmieniane
+        {
+            int x1 = v1.X;
+            int x2 = v2.X;
+            int y1 = v1.Y;
+            int y2 = v2.Y;
+
+            int counter = 0;
+
+            int d, dx, dy, ai, bi, xi, yi;
+            int x = x1, y = y1;
+            // ustalenie kierunku rysowania
+            if (x1 < x2)
+            {
+                xi = 1;
+                dx = x2 - x1;
+            }
+            else
+            {
+                xi = -1;
+                dx = x1 - x2;
+            }
+            // ustalenie kierunku rysowania
+            if (y1 < y2)
+            {
+                yi = 1;
+                dy = y2 - y1;
+            }
+            else
+            {
+                yi = -1;
+                dy = y1 - y2;
+            }
+
+            // pierwszy piksel
+            counter++;
+
+            // oś wiodąca OX
+            if (dx > dy)
+            {
+                ai = (dy - dx) * 2;
+                bi = dy * 2;
+                d = bi - dx;
+                // pętla po kolejnych x
+                while (counter++ != length)
+                {
+                    // test współczynnika
+                    if (d >= 0)
+                    {
+                        x += xi;
+                        y += yi;
+                        d += ai;
+                    }
+                    else
+                    {
+                        d += bi;
+                        x += xi;
+                    }
+                }
+            }
+            // oś wiodąca OY
+            else
+            {
+                ai = (dx - dy) * 2;
+                bi = dx * 2;
+                d = bi - dy;
+                // pętla po kolejnych y
+                while (counter++ != length)
+                {
+                    // test współczynnika
+                    if (d >= 0)
+                    {
+                        x += xi;
+                        y += yi;
+                        d += ai;
+                    }
+                    else
+                    {
+                        d += bi;
+                        y += yi;
+                    }
+                }
+            }
+
+            //ustawienie x i y
+            v2.SetNewCoordinates(x,y);
+        }
+
+        private void RedrawLine(Line line)
+        {
+            Verticle verticleOne = FindVerticleById(line.VerticleOneId);
+            Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
+            line.Rectangles = DrawLine(verticleOne, verticleTwo);
+            SetRestrictionPic(line, (verticleOne.X + verticleTwo.X) / 2, (verticleOne.Y + verticleTwo.Y) / 2);
+        }
+
+        private Line CreateLine(Verticle v1, Verticle v2)
+        {
+            Line line = new Line(v1.Id, v2.Id, DrawLine(v1, v2));
+            line.EnableClicking();
+            return line;
+        }
 
         private void ClearCanvasButton(object sender, RoutedEventArgs e)
         {
@@ -521,21 +826,21 @@ namespace GrafikaKomputerowaProjekt
             _verticleIndexer = 0;
             EnableSettingVerticle();
             DisableMovingVerticles();
-            //DisableMovingPolygon();
+            DisableMovingPolygon();
             EnableDrawingHelpingLine();
             _helpingLine = null;
-            _polygonMade = false;            
+            _polygonMade = false;
+            MovePolygonButton.IsEnabled = false;
         }
 
         private void LineHelper(object sender, MouseEventArgs e)
         {
-            if(_verticles.Count == 0) return;
+            if (_verticles.Count == 0) return;
 
             ClearHelpingLine();
 
-            Point p = Mouse.GetPosition((Canvas)sender);
-            int x = (int)p.X;
-            int y = (int)p.Y;
+            int x, y;
+            GetMousePosition(sender, out x, out y);
 
             Verticle extraVerticle = new Verticle(int.MaxValue, x, y);
             Verticle lastVerticle = _verticles.LastOrDefault();
@@ -556,75 +861,58 @@ namespace GrafikaKomputerowaProjekt
             {
                 canvas.Children.Remove(rectangle);
             }
+            canvas.Children.Remove(line.RestrictionPic);
         }
 
-        // zaznaczanie linii
-
-        private void AllowMovingPolygon(object sender, RoutedEventArgs e)
+        private void RedrawPolygon()
         {
-            DisableMovingVerticles();
-            EnableMovingPolygon();
-
+            canvas.Children.Clear();
 
             foreach (var verticle in _verticles)
             {
-                verticle.Rectangle.MouseLeftButtonUp += LeftButtonUpPolygon;
+                verticle.Rectangle = SetPixel(verticle.X, verticle.Y, VerticleSize, true);
+                verticle.Rectangle.ContextMenu = _verticleContextMenu;
             }
-            foreach (var line in _lines)
-            {
-                foreach (var rectangle in line.Rectangles)
-                {
-                    rectangle.MouseLeftButtonUp += LeftButtonUpPolygon;
-                }
-            }
-        }
-
-        private void ForbidMovingPolygon(object sender, RoutedEventArgs e)
-        {
             EnableMovingVerticles();
-            DisableMovingPolygon();
 
-            foreach (var verticle in _verticles)
-            {
-                verticle.Rectangle.MouseLeftButtonUp -= LeftButtonUpPolygon;
-            }
             foreach (var line in _lines)
             {
-                foreach (var rectangle in line.Rectangles)
-                {
-                    rectangle.MouseLeftButtonUp -= LeftButtonUpPolygon;
-                }
+                RedrawLine(line);
+                line.EnableClicking();
             }
         }
 
-        private void AddVerticleInTheMiddleOfLine(object sender, RoutedEventArgs routedEventArgs)
+        #endregion
+
+        #region Find Fuctions
+
+        private Line FindNearbyLine(Line actualLine, bool nearV1)
         {
-            MenuItem mi = sender as MenuItem;
-
-            if (mi != null)
+            if (nearV1)
             {
-                Rectangle rc = ((ContextMenu)mi.Parent).PlacementTarget as Rectangle;
+                return _lines.FirstOrDefault(
+                    l => (l.VerticleOneId == actualLine.VerticleOneId && l.VerticleTwoId != actualLine.VerticleTwoId) ||
+                         (l.VerticleTwoId == actualLine.VerticleOneId && l.VerticleOneId != actualLine.VerticleTwoId));
+            }
+            else
+            {
+                return _lines.FirstOrDefault(
+                    l => (l.VerticleOneId == actualLine.VerticleTwoId && l.VerticleTwoId != actualLine.VerticleOneId) ||
+                         (l.VerticleTwoId == actualLine.VerticleTwoId && l.VerticleOneId != actualLine.VerticleOneId));
+            }
+        }
 
+
+
+        private void RemoveRestriction(object sender, RoutedEventArgs routedEventArgs)
+        {
+            Rectangle rc;
+            if (CheckMenuItem(sender, out rc))
+            {
                 Line line = FindLine(rc);
-
-                Verticle verticleOne = _verticles.FirstOrDefault(v => v.Id == line.VerticleOneId);
-                Verticle verticleTwo = _verticles.FirstOrDefault(v => v.Id == line.VerticleTwoId);
-
-                ClearLine(line);
-                _lines.Remove(line);
-
-                int x = (verticleOne.X + verticleTwo.X) / 2;
-                int y = (verticleOne.Y + verticleTwo.Y) / 2;
-
-                Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
-                rectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
-                rectangle.MouseLeftButtonUp += LeftButtonUpVerticle;
-                rectangle.ContextMenu = _verticleContextMenu;
-                Verticle newVerticle = new Verticle(_verticleIndexer++, x, y, rectangle);
-                _verticles.Add(newVerticle);
-
-                _lines.Add(CreateLine(verticleOne, newVerticle));
-                _lines.Add(CreateLine(newVerticle, verticleTwo));
+                line.Restriction = new NoneRestriction();
+                canvas.Children.Remove(line.RestrictionPic);
+                line.RestrictionPic = new Image();
             }
         }
 
@@ -643,6 +931,29 @@ namespace GrafikaKomputerowaProjekt
             return _lines.FirstOrDefault();
         }
 
-        
+        private Verticle FindVerticleById(int id)
+        {
+            return _verticles.FirstOrDefault(v => v.Id == id);
+        }
+
+        private Verticle FindVerticeByRectangle(Rectangle rectangle)
+        {
+            return _verticles.FirstOrDefault(v => Equals(v.Rectangle, rectangle));
+        }
+
+        private Verticle FindVerticleByIdInCopy(int id)
+        {
+            return _copyOfVerticles.FirstOrDefault(v => v.Id == id);
+        }
+
+        private void GetMousePosition(object mouse, out int x, out int y)
+        {
+            Point p = Mouse.GetPosition((Canvas)mouse);
+            x = (int)p.X;
+            y = (int)p.Y;
+        }
+
+        #endregion
+
     }
 }
