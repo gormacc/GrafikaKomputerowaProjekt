@@ -30,5 +30,10 @@ namespace GrafikaKomputerowaProjekt.Restriction
 
             return new Image { Source = bmp };
         }
+
+        public void ReorganizeLine(Verticle verticleMoved, Verticle secondVerticle)
+        {
+            secondVerticle.Y = verticleMoved.Y;
+        }
     }
 }

@@ -7,5 +7,7 @@ namespace GrafikaKomputerowaProjekt.Restriction
         bool CheckRestrictionAvailability(Line v1Line, Line v2Line);
 
         Image GetRestrictionPic();
+
+        void ReorganizeLine(Verticle verticleBeingMoved, Verticle secondVerticle);
     }
 }

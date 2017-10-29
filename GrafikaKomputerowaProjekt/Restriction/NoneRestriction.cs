@@ -14,5 +14,10 @@ namespace GrafikaKomputerowaProjekt.Restriction
         {
             return new Image();
         }
+
+        public void ReorganizeLine(Verticle verticleOne, Verticle verticleTwo)
+        {
+            return;
+        }
     }
 }

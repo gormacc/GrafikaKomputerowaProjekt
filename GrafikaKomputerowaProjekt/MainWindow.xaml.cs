@@ -19,7 +19,7 @@ namespace GrafikaKomputerowaProjekt
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly List<Verticle> _verticles = new List<Verticle>();
+        private List<Verticle> _verticles = new List<Verticle>();
         private readonly List<Line> _lines = new List<Line>();
         private readonly ContextMenu _verticleContextMenu = new ContextMenu();
         private readonly ContextMenu _firstVerticleContextMenu = new ContextMenu();
@@ -35,6 +35,12 @@ namespace GrafikaKomputerowaProjekt
         private int _movePolygonXPosition;
         private int _movePolygonYPosition;
         private Line _lineStillLengthBeingRestricted;
+
+
+        private int _startCheckingRestrictionVerticleId = 0;
+        private int _moveDirectionX = 0;
+        private int _moveDirectionY = 0;
+        private List<Verticle> _copyOfVerticles = new List<Verticle>();
 
         public MainWindow()
         {
@@ -131,7 +137,6 @@ namespace GrafikaKomputerowaProjekt
                 ver.Rectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
                 ver.Rectangle.MouseLeftButtonUp += LeftButtonUpVerticle;
             }
-            canvas.MouseMove += MoveVerticle;
         }
 
         private void DisableMovingVerticles()
@@ -141,7 +146,6 @@ namespace GrafikaKomputerowaProjekt
                 ver.Rectangle.MouseLeftButtonDown -= LeftButtonDownVerticle;
                 ver.Rectangle.MouseLeftButtonUp -= LeftButtonUpVerticle;
             }
-            canvas.MouseMove -= MoveVerticle;
         }
 
         #endregion
@@ -163,8 +167,6 @@ namespace GrafikaKomputerowaProjekt
                 verticle.Rectangle.ContextMenu = _verticleContextMenu;
             }
             ClearHelpingLine();
-
-
 
             MenuItem mi = sender as MenuItem;
 
@@ -301,11 +303,15 @@ namespace GrafikaKomputerowaProjekt
             {
                 _movingVerticle = FindVerticeByRectangle(rectangle);
                 _isMovingVerticleSet = true;
+                _copyOfVerticles = new List<Verticle>(_verticles);
+                canvas.MouseMove += MoveVerticle;
             }
         }
 
         private void LeftButtonUpVerticle(object sender, MouseButtonEventArgs e)
         {
+            canvas.MouseMove -= MoveVerticle;
+
             _movingVerticle = null;
             _isMovingVerticleSet = false;
         }
@@ -314,27 +320,38 @@ namespace GrafikaKomputerowaProjekt
         {
             if (_isMovingVerticleSet)
             {
+                //ustalenie pozycji myszki
+                Point p = Mouse.GetPosition((Canvas)sender);
+                int x = (int)p.X;
+                int y = (int)p.Y;
+
                 // usuwanie wierzchołka i linii
 
-                canvas.Children.Remove(_movingVerticle.Rectangle);
-
                 int verticleId = _movingVerticle.Id;
-
                 List<Line> lines = new List<Line>(_lines.Where(l => l.VerticleOneId == verticleId || l.VerticleTwoId == verticleId));
 
+                foreach (var line in lines)
+                {
+                    if (line.Restriction.GetType() != typeof(NoneRestriction))
+                    {
+                        _startCheckingRestrictionVerticleId = verticleId;
+                        _moveDirectionX = x - _movingVerticle.X;
+                        _moveDirectionY = y - _movingVerticle.Y;
+                        RecurencyCheckingRestriction(line, verticleId);
+                        return;
+                    }
+                }                
+
+                canvas.Children.Remove(_movingVerticle.Rectangle);
                 foreach (var line in lines)
                 {
                     ClearLine(line);
                     line.Rectangles.Clear();
                 }
 
-                // -------------
+                // -------------                
 
                 // nowy punkt wierzchołka
-                Point p = Mouse.GetPosition((Canvas)sender);
-                int x = (int)p.X;
-                int y = (int)p.Y;
-
                 Rectangle newRectangle = SetPixel(x, y, VerticleSize, true);
                 newRectangle.ContextMenu = _verticleContextMenu;
                 newRectangle.MouseLeftButtonDown += LeftButtonDownVerticle;
@@ -354,6 +371,34 @@ namespace GrafikaKomputerowaProjekt
 
                 //--------------------------------
             }
+        }
+
+        private void RecurencyCheckingRestriction(Line line, int oppositeDirectionVerticle)
+        {
+            
+
+            if (oppositeDirectionVerticle == _startCheckingRestrictionVerticleId)
+            {
+                _verticles = _copyOfVerticles;
+                RedrawPolygon();
+                return;
+            }
+
+            // do zrobienia : zmienić metodę w IRestriction (nazwa zmiennych) , zrobić tak że pierwszy wierzchołek jest ustawiany, później kolejne krawędzie mają się
+            // dostosowywać do ich poprzedników i tak aż do końca  i na ostatniej krawędzi jakieś sprawdzenie czy tak można czy nie 
+
+            Verticle verticleBeingMoved = FindVerticleByIdInCopy(oppositeDirectionVerticle);
+            Verticle secondVerticle = FindVerticleByIdInCopy(line.VerticleOneId == oppositeDirectionVerticle
+                ? line.VerticleTwoId
+                : line.VerticleOneId);
+            
+            //line.Restriction.ReorganizeLine(verticleMoved, secondVerticle);
+            
+        }
+
+        private Verticle FindVerticleByIdInCopy(int id)
+        {
+            return _copyOfVerticles.FirstOrDefault(v => v.Id == id);
         }
 
         private void LeftButtonDownPolygon(object sender, MouseButtonEventArgs e) // dodać sprawdzanie czy kliknięto w środek wielokąta
@@ -906,6 +951,7 @@ namespace GrafikaKomputerowaProjekt
             Verticle verticleOne = FindVerticleById(_lineStillLengthBeingRestricted.VerticleOneId);
             Verticle verticleTwo = FindVerticleById(_lineStillLengthBeingRestricted.VerticleTwoId);
             ResetLengthRestrictedLine(verticleOne, verticleTwo, val);
+            ((LengthStillRestriction) _lineStillLengthBeingRestricted.Restriction).LengthSet = val;
 
             RedrawPolygon();
         }
