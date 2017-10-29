@@ -12,7 +12,7 @@ namespace GrafikaKomputerowaProjekt.Restriction
 
         public bool CheckRestrictionAvailability(Line v1Line, Line v2Line)
         {
-            throw new System.NotImplementedException();
+            return true;
         }
 
         public Image GetRestrictionPic()

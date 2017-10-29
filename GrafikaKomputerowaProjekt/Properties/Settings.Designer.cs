@@ -34,5 +34,41 @@ namespace GrafikaKomputerowaProjekt.Properties {
                 this["LineMarginOfError"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int VerticleSize {
+            get {
+                return ((int)(this["VerticleSize"]));
+            }
+            set {
+                this["VerticleSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("4")]
+        public int LinePixelSize {
+            get {
+                return ((int)(this["LinePixelSize"]));
+            }
+            set {
+                this["LinePixelSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int RestrictionMargin {
+            get {
+                return ((int)(this["RestrictionMargin"]));
+            }
+            set {
+                this["RestrictionMargin"] = value;
+            }
+        }
     }
 }

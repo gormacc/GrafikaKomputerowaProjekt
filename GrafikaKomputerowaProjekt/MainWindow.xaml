@@ -16,7 +16,7 @@
         <Canvas Grid.Column="0" Name="canvas" Background="White"/>
         <StackPanel Grid.Column="1" Background="Coral">
             <Button Click="ClearCanvasButton" Content="Wyczysc" Margin="10,20" />
-            <ToggleButton Checked="AllowMovingPolygon" Unchecked="ForbidMovingPolygon" Content="Ruszanie wielokata" Margin="10,20" />
+            <ToggleButton Name="MovePolygonButton" IsEnabled="False" Checked="AllowMovingPolygon" Unchecked="ForbidMovingPolygon" Content="Ruszanie wielokata" Margin="10,20" />
             <StackPanel Name="LineLengthStackPanel" Visibility="Collapsed">
                 <TextBox Text="0" Name="LineLengthTextBox"/>
                 <Button Content="Zatwierdz" Click="SetLengthOfRestrictedLine"></Button>

@@ -8,6 +8,6 @@ namespace GrafikaKomputerowaProjekt.Restriction
 
         Image GetRestrictionPic();
 
-        void ReorganizeLine(Verticle verticleBeingMoved, Verticle secondVerticle);
+        void ReorganizeLine(Verticle verticleMoved, Verticle secondVerticle);
     }
 }
