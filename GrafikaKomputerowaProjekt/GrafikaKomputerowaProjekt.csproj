@@ -56,6 +56,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Polygon.cs" />
+    <Compile Include="RestrictionEnumToXml.cs" />
     <Compile Include="Restriction\HorizontalLineRestriction.cs" />
     <Compile Include="Restriction\IRestriction.cs" />
     <Compile Include="Line.cs" />

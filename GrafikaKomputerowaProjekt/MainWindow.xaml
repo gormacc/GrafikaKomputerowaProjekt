@@ -22,7 +22,9 @@
                 <Button Content="Zatwierdz" Click="SetLengthOfRestrictedLine"/>
             </StackPanel>
             <ToggleButton Name="StartDrawingNewPolygonButton" IsEnabled="False" Checked="StartDrawingNewPolygon" Unchecked="EndDrawingNewPolygon" Content="Dodaj nowy wielokat" Margin="10,20" />
-            
+
+            <Button Name="Save" Click="SavePolgons" Content="Zapisz" Margin="10,20" />
+            <Button Name="Load" Click="LoadPolgons" Content="Wczytaj" Margin="10,20" />
         </StackPanel>
     </Grid>
     

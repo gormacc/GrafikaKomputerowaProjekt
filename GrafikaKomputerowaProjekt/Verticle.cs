@@ -1,4 +1,5 @@
 ﻿using System.Windows.Shapes;
+using System.Xml.Serialization;
 
 namespace GrafikaKomputerowaProjekt
 {
@@ -8,9 +9,15 @@ namespace GrafikaKomputerowaProjekt
 
         public int Y;
 
-        public readonly int Id;
+        public int Id;
 
+        [XmlIgnore]
         public Rectangle Rectangle;
+
+        public Verticle()
+        {
+            
+        }
 
         public Verticle(int id, int x, int y, Rectangle rectangle = null)
         {            

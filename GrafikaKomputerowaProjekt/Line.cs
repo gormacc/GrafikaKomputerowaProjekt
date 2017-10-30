@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System.CodeDom;
+using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Shapes;
+using System.Xml.Serialization;
 using GrafikaKomputerowaProjekt.Properties;
 using GrafikaKomputerowaProjekt.Restriction;
 
@@ -8,15 +10,39 @@ namespace GrafikaKomputerowaProjekt
 {
     public class Line
     {
-        public readonly int VerticleOneId;
+        public int VerticleOneId;
 
-        public readonly int VerticleTwoId;
+        public int VerticleTwoId;
 
+        [XmlIgnore]
         public List<Rectangle> Rectangles = new List<Rectangle>();
 
+        [XmlIgnore]
         public IRestriction Restriction = new NoneRestriction();
 
+        public RestrictionEnumToXml RestrictionToSerialize => ConvertRestricionToEnum();
+
+        private RestrictionEnumToXml ConvertRestricionToEnum()
+        {
+            if(Restriction.GetType() == typeof(HorizontalLineRestriction))
+                return RestrictionEnumToXml.HorizontalLine;
+
+            if (Restriction.GetType() == typeof(VerticalLineRestriction))
+                return RestrictionEnumToXml.VerticalLine;
+
+            if (Restriction.GetType() == typeof(LengthStillRestriction))
+                return RestrictionEnumToXml.StillLength;
+
+            return RestrictionEnumToXml.None;
+        }
+
+        [XmlIgnore]
         public Image RestrictionPic = new Image();
+
+        public Line()
+        {
+            
+        }
 
         public Line(int verticleOneId, int verticleTwoId, List<Rectangle> listOfRectangles)
         {

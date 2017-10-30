@@ -14,5 +14,11 @@
     <Setting Name="RestrictionMargin" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">10</Value>
     </Setting>
+    <Setting Name="NameOfSavingFile" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Document.xml</Value>
+    </Setting>
+    <Setting Name="NameOfSecondSavingFile" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Document2.xml</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

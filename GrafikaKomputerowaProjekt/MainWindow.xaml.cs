@@ -1,10 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Xml;
+using System.Xml.Serialization;
 using GrafikaKomputerowaProjekt.Restriction;
 
 namespace GrafikaKomputerowaProjekt
@@ -21,14 +25,14 @@ namespace GrafikaKomputerowaProjekt
     {
         private List<Verticle> _verticles = new List<Verticle>();
         private List<Verticle> _copyOfVerticles = new List<Verticle>();
-        private readonly List<Line> _lines = new List<Line>();
+        private List<Line> _lines = new List<Line>();
         private readonly ContextMenu _verticleContextMenu = new ContextMenu();
         private readonly ContextMenu _firstVerticleContextMenu = new ContextMenu();
         private readonly ContextMenu _lineContextMenu = new ContextMenu();
 
         private List<Verticle> _newPolygonVerticles = new List<Verticle>();
         private List<Line> _newPolygonLines = new List<Line>();
-        private int newPolygonVerticleIndexer = 0;
+        private int _newPolygonVerticleIndexer = 0;
 
         private int VerticleSize => Properties.Settings.Default.VerticleSize;
         private int LinePointSize => Properties.Settings.Default.LinePixelSize;
@@ -1015,7 +1019,7 @@ namespace GrafikaKomputerowaProjekt
             GetMousePosition(sender, out x, out y);
 
             Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
-            _newPolygonVerticles.Add(new Verticle(newPolygonVerticleIndexer++, x, y, rectangle));
+            _newPolygonVerticles.Add(new Verticle(_newPolygonVerticleIndexer++, x, y, rectangle));
 
             if (_newPolygonVerticles.Count >= 2)
             {
@@ -1025,5 +1029,79 @@ namespace GrafikaKomputerowaProjekt
             }
         }
 
+        private void SavePolgons(object sender, RoutedEventArgs e)
+        {
+            Polygon primaryPolygon = new Polygon(_verticles, _lines);
+            Polygon addedPolygon = new Polygon(_newPolygonVerticles, _newPolygonLines);
+
+            try
+            {
+                XmlSerializer ser = new XmlSerializer(typeof(Polygon));
+                TextWriter writer = new StreamWriter(Properties.Settings.Default.NameOfSavingFile);
+                TextWriter writer2 = new StreamWriter(Properties.Settings.Default.NameOfSecondSavingFile);
+                ser.Serialize(writer, primaryPolygon);
+                ser.Serialize(writer2, addedPolygon);
+                writer.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+            
+        }
+
+        private void LoadPolgons(object sender, RoutedEventArgs e)
+        {
+            Polygon primaryPolygon = new Polygon();
+            Polygon addedPolygon = new Polygon();
+
+            try
+            {
+                XmlSerializer ser = new XmlSerializer(typeof(Polygon));
+                TextReader reader = new StreamReader(Properties.Settings.Default.NameOfSavingFile);
+                TextReader reader2 = new StreamReader(Properties.Settings.Default.NameOfSecondSavingFile);
+                primaryPolygon = (Polygon)ser.Deserialize(reader);
+                addedPolygon = (Polygon)ser.Deserialize(reader2);
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+                return;
+            }           
+
+            _verticles.Clear();
+            _lines.Clear();
+
+            _newPolygonVerticles.Clear();
+            _newPolygonLines.Clear();
+            canvas.Children.Clear();
+
+            _verticles = primaryPolygon.Verticles;
+            _lines = primaryPolygon.Lines;
+
+            _newPolygonVerticles = addedPolygon.Verticles;
+            _newPolygonLines = addedPolygon.Lines;
+
+            RedrawPolygon();
+            RedrawNewPolygon();
+
+            canvas.MouseMove -= LineHelper;
+            canvas.MouseLeftButtonDown -= SetVerticle;
+        }
+
+        private void RedrawNewPolygon()
+        {
+            foreach (var verticle in _newPolygonVerticles)
+            {
+                verticle.Rectangle = SetPixel(verticle.X, verticle.Y, VerticleSize, true);
+                verticle.Rectangle.ContextMenu = _verticleContextMenu;
+            }
+
+            foreach (var line in _newPolygonLines)
+            {
+                RedrawLine(line);
+            }
+        }       
     }
 }

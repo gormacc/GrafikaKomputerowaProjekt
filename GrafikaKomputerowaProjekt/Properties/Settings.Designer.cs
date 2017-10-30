@@ -70,5 +70,29 @@ namespace GrafikaKomputerowaProjekt.Properties {
                 this["RestrictionMargin"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Document.xml")]
+        public string NameOfSavingFile {
+            get {
+                return ((string)(this["NameOfSavingFile"]));
+            }
+            set {
+                this["NameOfSavingFile"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Document2.xml")]
+        public string NameOfSecondSavingFile {
+            get {
+                return ((string)(this["NameOfSecondSavingFile"]));
+            }
+            set {
+                this["NameOfSecondSavingFile"] = value;
+            }
+        }
     }
 }
