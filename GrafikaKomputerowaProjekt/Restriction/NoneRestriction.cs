@@ -19,5 +19,10 @@ namespace GrafikaKomputerowaProjekt.Restriction
         {
             return;
         }
+
+        public bool CheckLastLine(Verticle verticleMoved, Verticle secondVerticle)
+        {
+            return true;
+        }
     }
 }

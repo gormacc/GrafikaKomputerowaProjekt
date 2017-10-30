@@ -35,5 +35,11 @@ namespace GrafikaKomputerowaProjekt.Restriction
         {
             secondVerticle.Y = verticleMoved.Y;
         }
+
+        public bool CheckLastLine(Verticle verticleMoved, Verticle lastVerticle)
+        {
+            verticleMoved.Y = lastVerticle.Y;
+            return true;
+        }
     }
 }

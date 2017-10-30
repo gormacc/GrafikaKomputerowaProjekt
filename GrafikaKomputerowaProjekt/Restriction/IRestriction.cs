@@ -9,5 +9,7 @@ namespace GrafikaKomputerowaProjekt.Restriction
         Image GetRestrictionPic();
 
         void ReorganizeLine(Verticle verticleMoved, Verticle secondVerticle);
+
+        bool CheckLastLine(Verticle verticleMoved, Verticle lastVerticle);
     }
 }
