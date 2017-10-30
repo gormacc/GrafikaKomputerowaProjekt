@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Shapes;
+using GrafikaKomputerowaProjekt.Properties;
 using GrafikaKomputerowaProjekt.Restriction;
 
 namespace GrafikaKomputerowaProjekt
@@ -30,6 +31,14 @@ namespace GrafikaKomputerowaProjekt
             for (int i = lineMarginOfError; i < Rectangles.Count - lineMarginOfError; i++)
             {
                 Rectangles[i].IsHitTestVisible = true;
+            }
+        }
+
+        public void DisableClicking()
+        {
+            foreach (var rec in Rectangles)
+            {
+                rec.IsHitTestVisible = false;
             }
         }
     }
