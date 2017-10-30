@@ -496,14 +496,18 @@ namespace GrafikaKomputerowaProjekt
 
             Verticle verticleMoved = FindVerticleByIdInCopy(oppositeDirectionVerticle);
             Verticle secondVerticle = FindVerticleByIdInCopy(directionVerticle);
-            line.Restriction.ReorganizeLine(verticleMoved, secondVerticle);
 
             if (directionVerticle == _startCheckingRestrictionVerticleId)
             {
-                _verticles = _copyOfVerticles;
-                RedrawPolygon();
+                if (line.Restriction.CheckLastLine(verticleMoved, secondVerticle))
+                {
+                    _verticles = _copyOfVerticles;
+                    RedrawPolygon();
+                }                               
                 return;
-            }
+            }       
+                 
+            line.Restriction.ReorganizeLine(verticleMoved, secondVerticle);
 
             Line nextLine = FindNearbyLine(line, line.VerticleOneId == directionVerticle);
             RecurencyCheckingRestriction(nextLine, directionVerticle);
