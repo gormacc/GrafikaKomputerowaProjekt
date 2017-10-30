@@ -367,6 +367,8 @@ namespace GrafikaKomputerowaProjekt
 
                 LineLengthStackPanel.Visibility = Visibility.Visible;
                 canvas.IsHitTestVisible = false;
+                ClearCanvasButton.IsEnabled = false;
+                MovePolygonButton.IsEnabled = false;
 
                 Verticle verticleOne = FindVerticleById(line.VerticleOneId);
                 Verticle verticleTwo = FindVerticleById(line.VerticleTwoId);
@@ -390,6 +392,8 @@ namespace GrafikaKomputerowaProjekt
             int val;
             canvas.IsHitTestVisible = true;
             LineLengthStackPanel.Visibility = Visibility.Collapsed;
+            ClearCanvasButton.IsEnabled = true;
+            MovePolygonButton.IsEnabled = true;
             if (_lineStillLengthBeingRestricted == null) return;
             if (!int.TryParse(LineLengthTextBox.Text, out val)) return;
             Verticle verticleOne = FindVerticleById(_lineStillLengthBeingRestricted.VerticleOneId);
@@ -818,16 +822,19 @@ namespace GrafikaKomputerowaProjekt
             return line;
         }
 
-        private void ClearCanvasButton(object sender, RoutedEventArgs e)
+        private void ClearCanvas(object sender, RoutedEventArgs e)
         {
             canvas.Children.Clear();
             _verticles.Clear();
             _lines.Clear();
-            _verticleIndexer = 0;
-            EnableSettingVerticle();
+            _verticleIndexer = 0;            
             DisableMovingVerticles();
             DisableMovingPolygon();
-            EnableDrawingHelpingLine();
+            if (_polygonMade)
+            {
+                EnableSettingVerticle();
+                EnableDrawingHelpingLine();
+            }           
             _helpingLine = null;
             _polygonMade = false;
             MovePolygonButton.IsEnabled = false;
