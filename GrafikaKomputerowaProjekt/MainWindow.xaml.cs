@@ -9,7 +9,7 @@ using GrafikaKomputerowaProjekt.Restriction;
 
 namespace GrafikaKomputerowaProjekt
 {
-    //notatki
+    //notatki 1a
 
 
     //notatki
@@ -25,6 +25,10 @@ namespace GrafikaKomputerowaProjekt
         private readonly ContextMenu _verticleContextMenu = new ContextMenu();
         private readonly ContextMenu _firstVerticleContextMenu = new ContextMenu();
         private readonly ContextMenu _lineContextMenu = new ContextMenu();
+
+        private List<Verticle> _newPolygonVerticles = new List<Verticle>();
+        private List<Line> _newPolygonLines = new List<Line>();
+        private int newPolygonVerticleIndexer = 0;
 
         private int VerticleSize => Properties.Settings.Default.VerticleSize;
         private int LinePointSize => Properties.Settings.Default.LinePixelSize;
@@ -196,6 +200,7 @@ namespace GrafikaKomputerowaProjekt
             DisableDrawingHelpingLine();
             EnableMovingVerticles();
             MovePolygonButton.IsEnabled = true;
+            StartDrawingNewPolygonButton.IsEnabled = true;
         }
 
         private void DeleteTail(int endVerticleIndex)
@@ -965,6 +970,60 @@ namespace GrafikaKomputerowaProjekt
         }
 
         #endregion
+
+        private void StartDrawingNewPolygon(object sender, RoutedEventArgs e)
+        {
+            DisableMovingVerticles();
+            MovePolygonButton.IsEnabled = false;
+            ClearCanvasButton.IsEnabled = false;
+            canvas.MouseLeftButtonDown += SetVerticleInNewPolygon;
+
+            _newPolygonVerticles = new List<Verticle>();
+            _newPolygonLines = new List<Line>();
+
+            foreach (var verticle in _verticles)
+            {
+                verticle.Rectangle.ContextMenu = null;
+            }
+            foreach (var line in _lines)
+            {
+                line.DisableClicking();
+            }           
+
+        }
+
+        private void EndDrawingNewPolygon(object sender, RoutedEventArgs e)
+        {
+            EnableMovingVerticles();
+            MovePolygonButton.IsEnabled = true;
+            ClearCanvasButton.IsEnabled = true;
+            canvas.MouseLeftButtonDown -= SetVerticleInNewPolygon;
+
+            foreach (var verticle in _verticles)
+            {
+                verticle.Rectangle.ContextMenu = _verticleContextMenu;
+            }
+            foreach (var line in _lines)
+            {
+                line.EnableClicking();
+            }
+        }
+
+        private void SetVerticleInNewPolygon(object sender, MouseButtonEventArgs e)
+        {
+            int x, y;
+            GetMousePosition(sender, out x, out y);
+
+            Rectangle rectangle = SetPixel(x, y, VerticleSize, true);
+            _newPolygonVerticles.Add(new Verticle(newPolygonVerticleIndexer++, x, y, rectangle));
+
+            if (_newPolygonVerticles.Count >= 2)
+            {
+                int index = _newPolygonVerticles.Count - 2;
+                List<Rectangle> lineRectangles = DrawLine(_newPolygonVerticles[index], _newPolygonVerticles[index + 1]);
+                _newPolygonLines.Add(new Line(index, index + 1, lineRectangles));
+            }
+        }
 
     }
 }

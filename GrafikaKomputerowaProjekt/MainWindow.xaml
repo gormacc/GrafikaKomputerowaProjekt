@@ -19,8 +19,10 @@
             <ToggleButton Name="MovePolygonButton" IsEnabled="False" Checked="AllowMovingPolygon" Unchecked="ForbidMovingPolygon" Content="Ruszanie wielokata" Margin="10,20" />
             <StackPanel Name="LineLengthStackPanel" Visibility="Collapsed">
                 <TextBox Text="0" Name="LineLengthTextBox"/>
-                <Button Content="Zatwierdz" Click="SetLengthOfRestrictedLine"></Button>
+                <Button Content="Zatwierdz" Click="SetLengthOfRestrictedLine"/>
             </StackPanel>
+            <ToggleButton Name="StartDrawingNewPolygonButton" IsEnabled="False" Checked="StartDrawingNewPolygon" Unchecked="EndDrawingNewPolygon" Content="Dodaj nowy wielokat" Margin="10,20" />
+            
         </StackPanel>
     </Grid>
     
